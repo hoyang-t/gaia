@@ -16,6 +16,7 @@
     <script type="application/javascript" defer src="js/data.js"></script>
     <script type="application/javascript" defer src="js/wifi.js"></script>
     <script type="application/javascript" defer src="js/bluetooth.js"></script>
+    <script type="application/javascript" defer src="js/simcard_lock.js"></script>
   </head>
   <body class="hidden">
 
@@ -93,9 +94,9 @@
           <small id="phoneLock-desc"></small>
           <a href="#phoneLock" data-l10n-id="phoneLock">Phone Lock</a>
         </li>
-        <li hidden>
+        <li>
           <small id="simCardLock-desc"></small>
-          <a href="#simCardLock" data-l10n-id="simCardLock">SIM Card Lock</a>
+          <a href="#simSecurity" data-l10n-id="simSecurity">SIM Security</a>
         </li>
         <li hidden>
           <a href="#appPermissions" data-l10n-id="appPermissions">App Permissions</a>
@@ -788,7 +789,39 @@
     </section>
 
     <!-- [TODO] Security :: Phone Lock -->
-    <!-- [TODO] Security :: SIM Card Lock -->
+
+    <!-- Security :: SIM Security -->
+    <section role="region" id="simSecurity">
+      <header>
+        <h1>
+          <a href="#root" data-l10n-id="simSecurity">SIM Security</a>
+        </h1>
+      </header>
+
+      <ul>
+        <li id="simpin-enabled">
+          <label>
+            <input type="checkbox"/>
+            <span></span>
+          </label>
+          <a data-l10n-id="simPin">SIM PIN</a>
+        </li>
+      </ul>
+      <h2 data-l10n-id="simPinIntro">What is a SIM PIN?</h2>
+      A SIM PIN prevents access to the SIM card's
+      cellular data networks. When it's on, any device
+      containing the SIM card will request the PIN upon
+      restart.
+      <br><br>
+      A SIM PIN is not the same as the Passcode used
+      to unlock the device.
+      <ul>
+        <li>
+          <button data-l10n-id="changeSimPin" name="changeSimPin">Change PIN</button>
+        </li>
+      </ul>
+    </section>
+
     <!-- [TODO] Security :: App Permissions -->
     <!-- [TODO] Security :: Do Not Track -->
 
