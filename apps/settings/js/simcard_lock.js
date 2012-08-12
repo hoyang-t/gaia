@@ -3,41 +3,90 @@
 
 'use strict';
 
-// handle Wi-Fi settings
-window.addEventListener('localized', function wifiSettings(evt) {
-  var settings = window.navigator.mozSettings;
+// handle SIM PIN settings
+window.addEventListener('localized', function simPinSettings(evt) {
   var _ = navigator.mozL10n.get;
-  var conn = window.navigator.mozMobileConnection;
 
+  var settings = window.navigator.mozSettings;
   if (!settings)
     return;
 
-  var simSecurityInfo = document.querySelector('#simCardLock-desc');
-  var simPinCheckBox =
-    document.querySelector('#simpin-enabled input[type=checkbox]');
-  var changeSimPinBt = document.querySelector('button[name="changeSimPin"]');
+  var gMobileConnection = window.navigator.mozMobileConnection;
 
-  simPinCheckBox.onchange = function toggleSimPin() {
+  var gSimSecurityInfo = document.querySelector('#simCardLock-desc');
+  var gSimPinCheckBox =  document.querySelector('#simpin-enabled input');
+  var gChangeSimPinItem = document.querySelector('#simpin-change');
+  var gSimPinPad = document.querySelector("#simpin-pad");
+  dump("===== simpin pad "+gSimPinPad);
+
+  gSimPinCheckBox.onchange = function toggleSimPin() {
     var enabled = this.checked;
     updateSimStatus();
+    showDialog("#simpin-confirm");
   }
 
   function updateSimStatus() {
-    if (conn.cardState === 'absent') {
-      simSecurityInfo.textContent = _('noSIMCard'); 
+    dump("===== card state: "+gMobileConnection.cardState);
+    if (gMobileConnection.cardState === 'absent') {
+      gSimSecurityInfo.textContent = _('noSIMCard'); 
     } else {
-      var req = conn.getCardLock('pin');
-      req.onsuccess = function onPinCheckSuccess() {
-        var pinEnabled = req.result;
+      var req = gMobileConnection.getCardLock('pin');
+      req.onsuccess = function sp_checkSuccess() {
+        dump("===== pin: "+req.result.enabled);
+        var pinEnabled = req.result.enabled;
         if (pinEnabled) {
-          simSecurityInfo.textContent = _('enabled');
+          gSimSecurityInfo.textContent = _('enabled');
         } else {
-          simSecurityInfo.textContent = _('disabled');
+          gSimSecurityInfo.textContent = _('disabled');
         }
-        simPinCheckBox.checked = pinEnabled;
-        changeSimPinBt.hidden = !pinEnabled;
+        gSimPinCheckBox.checked = pinEnabled;
+        gChangeSimPinItem.hidden = !pinEnabled;
       }
     }
+  }
+
+  // generic SIM PIN property dialog
+  // TODO: the 'OK' button should be disabled until the password string
+  //       has a suitable length (e.g. 4..8)
+  function showDialog(selector, callback, key) {
+    var dialog = document.querySelector(selector);
+    if (!dialog)
+      return null;
+
+    gSimPinPad.className = 'active';
+    gSimPinPad.addEventListener('click', function(e){
+        dump("==== pad click"+ e.target.dataset.key);
+      });
+
+    // hide dialog box
+    function close() {
+      // reset authentication fields
+      if (key) {
+        identity.value = '';
+        password.value = '';
+        showPassword.checked = false;
+      }
+      // 'close' (hide) the dialog
+      dialog.removeAttribute('class');
+      return false; // ignore <form> action
+    }
+
+
+    // OK|Cancel buttons
+    dialog.onreset = close;
+    dialog.onsubmit = function() {
+      if (key) {
+        setPassword(password.value, identity.value);
+      }
+      if (callback) {
+        callback();
+      }
+      return close();
+    };
+
+    // show dialog box
+    dialog.className = 'active';
+    return dialog;
   }
 
   updateSimStatus();

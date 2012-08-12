@@ -1,0 +1,79 @@
+/* SIM PIN property lists */
+
+#sim dl > * {
+  line-height: 1.2em;
+}
+
+#sim dt {
+  margin-left: 0.5em;
+  font-weight: bold;
+}
+
+#sim dd {
+  margin-right: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+#simpin-pad {
+  display: none;
+  position: absolute;
+  z-index: 11;
+  padding: 0 0;
+  -moz-box-sizing: border-box;
+  bottom: 0;
+  height: 12rem;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  -moz-transform: translateY(0);
+}
+
+#simpin-pad .active {
+  display: block;
+}
+
+#simpin-pad > a {
+  -moz-box-sizing: border-box;
+  display: block;
+  float: left;
+  width: 33.333%;
+  height: 3rem;
+  border-top: 1px solid #525050;
+  border-bottom: 1px solid #000000;
+  border-left: 1px solid #525050;
+  border-right: 1px solid #000000;
+  outline: none;
+  padding: 0 2rem;
+
+  font-size: 2.2rem;
+  font-weight: 600;
+  line-height: 3rem;
+
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 0 0 3px #000;
+}
+
+#simpin-pad > a > span {
+  pointer-events: none;
+  font-size: 1.2rem;
+  padding: 1.2rem;
+  color: #9aaabc;
+}
+
+@font-face {
+  font-family: 'Keyboard Symbols';
+  font-weight: bold;
+  src: url('fonts/Keyboard-Symbols.woff');
+}
+
+#simpin-pad > a[data-key="b"] {
+  display: block;
+  text-align: center;
+  font-family: 'Keyboard Symbols', sans-serif;
+}
+
+#simpin-pad > a:active {
+  background-color: rgb(0, 0, 0);
+  color: #ccc;
+}
+

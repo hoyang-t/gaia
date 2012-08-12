@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" media="screen" href="style/lists.css"/>
     <link rel="stylesheet" type="text/css" media="screen" href="style/dialogs.css"/>
     <link rel="stylesheet" type="text/css" media="screen" href="style/settings.css"/>
+    <link rel="stylesheet" type="text/css" media="screen" href="style/simcard.css"/>
     <!-- Localization -->
     <link rel="resource" type="application/l10n" href="locales/locales.ini"/>
     <!-- Shared code -->
@@ -96,7 +97,7 @@
         </li>
         <li>
           <small id="simCardLock-desc"></small>
-          <a href="#simSecurity" data-l10n-id="simSecurity">SIM Security</a>
+          <a href="#sim" data-l10n-id="simSecurity">SIM Security</a>
         </li>
         <li hidden>
           <a href="#appPermissions" data-l10n-id="appPermissions">App Permissions</a>
@@ -807,7 +808,7 @@
     <!-- [TODO] Security :: Phone Lock -->
 
     <!-- Security :: SIM Security -->
-    <section role="region" id="simSecurity">
+    <section role="region" id="sim">
       <header>
         <h1>
           <a href="#root" data-l10n-id="simSecurity">SIM Security</a>
@@ -823,20 +824,58 @@
           <a data-l10n-id="simPin">SIM PIN</a>
         </li>
       </ul>
-      <h2 data-l10n-id="simPinIntro">What is a SIM PIN?</h2>
-      A SIM PIN prevents access to the SIM card's
-      cellular data networks. When it's on, any device
-      containing the SIM card will request the PIN upon
-      restart.
-      <br><br>
-      A SIM PIN is not the same as the Passcode used
-      to unlock the device.
+
+      <dl>
+        <dt data-l10n-id="simPinIntro">What is a SIM PIN?</dt>
+        <dd>
+          A SIM PIN prevents access to the SIM card's
+          cellular data networks. When it's on, any device
+          containing the SIM card will request the PIN upon
+          restart.</dd>
+        <dd>
+          A SIM PIN is not the same as the Passcode used
+          to unlock the device.</dd>
+      </dl>
+
       <ul>
-        <li>
+        <li id="simpin-change">
           <button data-l10n-id="changeSimPin" name="changeSimPin">Change PIN</button>
         </li>
       </ul>
     </section>
+
+    <!-- Security :: SIM Security :: SIM PIN Input Dialog -->
+    <form role="dialog" action="#sim" id="simpin-confirm">
+      <header>
+        <button type="reset" data-l10n-id="cancel">Cancel</button>
+        <button type="submit" data-l10n-id="ok">OK</button>
+        <h2 data-l10n-id="enterSimPin">Enter SIM PIN</h2>
+      </header>
+
+      <!-- sim pin input field -->
+      <label for="password">
+        <span id="simpin-count">3</span>
+        <span data-l10n-id="simPinAttemptMsg">tries left.</span>
+        <input data-password data-ignore name="password" type="password" />
+      </label>
+    </form>
+
+    <!-- sim pin pad -->
+    <div id="simpin-pad">
+      <a role="button" href="#" data-key="1">1</a>
+      <a role="button" href="#" data-key="2">2</a>
+      <a role="button" href="#" data-key="3">3</a>
+      <a role="button" href="#" data-key="4">4</a>
+      <a role="button" href="#" data-key="5">5</a>
+      <a role="button" href="#" data-key="6">6</a>
+      <a role="button" href="#" data-key="7">7</a>
+      <a role="button" href="#" data-key="8">8</a>
+      <a role="button" href="#" data-key="9">9</a>
+      <a role="button" href="#" data-key=""></a>
+      <a role="button" href="#" data-key="0">0</a>
+      <a role="button" href="#" data-key="b">⌫</a>
+    </div>
+
 
     <!-- [TODO] Security :: App Permissions -->
     <!-- [TODO] Security :: Do Not Track -->
