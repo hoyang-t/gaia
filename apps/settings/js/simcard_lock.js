@@ -16,77 +16,109 @@ window.addEventListener('localized', function simPinSettings(evt) {
   var gSimSecurityInfo = document.querySelector('#simCardLock-desc');
   var gSimPinCheckBox =  document.querySelector('#simpin-enabled input');
   var gChangeSimPinItem = document.querySelector('#simpin-change');
-  var gSimPinPad = document.querySelector("#simpin-pad");
-  dump("===== simpin pad "+gSimPinPad);
+
+
+  function inputFieldWrapper(name) {
+    var simPinEntered = '';
+    var inputField = document.querySelector('input[name="'+name+'"]');
+    inputField.addEventListener("keypress", simPinInputFilter);
+
+    function simPinInputFilter(ekey) {
+      ekey.preventDefault();
+
+      var key = String.fromCharCode(ekey.charCode);
+      dump("===== charCode: " + ekey.charCode + " - " + key);
+      if (key === '.') { // invalid
+        return;
+      }
+
+      if (ekey.charCode === 0) { // backspace
+        simPinEntered = simPinEntered.substr(0, simPinEntered.length - 1);
+      } else {
+        if (simPinEntered.length >= 8)
+          return;
+        simPinEntered += key;
+      }
+      updateSimPinUI();
+    }
+
+    function updateSimPinUI() {
+      var len = simPinEntered.length;
+      dump("===== simPinEntered: " + simPinEntered);
+      inputField.value = (new Array(len+1)).join("*");
+    }
+
+    function clear() {
+      simPinEntered = '';
+      inputField.value = '';
+    }
+
+    return { 
+      get getSimPinEntered() { return simPinEntered; },
+      clear: clear
+    };
+  };
+
+  // TODO: the 'OK' button should be disabled until the password string
+  //       has a suitable length (e.g. 4..8)
+  var gSimPinConfirmDialog = (function() {
+    var dialog = document.querySelector('#simpin-confirm');
+    var simPinInput = inputFieldWrapper('simpin');
+
+    function clear() {
+      simPinInput.clear();
+    }
+    // hide dialog box
+    function close() {
+      clear();
+      dialog.removeAttribute('class');
+      return false; // ignore <form> action
+    }
+    // show dialog box
+    function show() {
+      dialog.className = 'active';
+    }
+
+    // OK|Cancel buttons
+    dialog.onreset = close;
+    dialog.onsubmit = function() {
+      clear();
+    };
+
+    return {
+      show: show
+    };
+  })();
 
   gSimPinCheckBox.onchange = function toggleSimPin() {
     var enabled = this.checked;
     updateSimStatus();
-    showDialog("#simpin-confirm");
-  }
+    gSimPinConfirmDialog.show();
+  };
 
   function updateSimStatus() {
-    dump("===== card state: "+gMobileConnection.cardState);
+    var simEnabled = false;
+    if (!gMobileConnection) {
+      gSimPinCheckBox.checked = simEnabled;
+      gChangeSimPinItem.hidden = !simEnabled;
+      return;
+    }
     if (gMobileConnection.cardState === 'absent') {
       gSimSecurityInfo.textContent = _('noSIMCard'); 
     } else {
       var req = gMobileConnection.getCardLock('pin');
       req.onsuccess = function sp_checkSuccess() {
-        dump("===== pin: "+req.result.enabled);
         var pinEnabled = req.result.enabled;
         if (pinEnabled) {
           gSimSecurityInfo.textContent = _('enabled');
+          simEnabled = true;
         } else {
           gSimSecurityInfo.textContent = _('disabled');
         }
-        gSimPinCheckBox.checked = pinEnabled;
-        gChangeSimPinItem.hidden = !pinEnabled;
       }
     }
-  }
-
-  // generic SIM PIN property dialog
-  // TODO: the 'OK' button should be disabled until the password string
-  //       has a suitable length (e.g. 4..8)
-  function showDialog(selector, callback, key) {
-    var dialog = document.querySelector(selector);
-    if (!dialog)
-      return null;
-
-    gSimPinPad.className = 'active';
-    gSimPinPad.addEventListener('click', function(e){
-        dump("==== pad click"+ e.target.dataset.key);
-      });
-
-    // hide dialog box
-    function close() {
-      // reset authentication fields
-      if (key) {
-        identity.value = '';
-        password.value = '';
-        showPassword.checked = false;
-      }
-      // 'close' (hide) the dialog
-      dialog.removeAttribute('class');
-      return false; // ignore <form> action
-    }
-
-
-    // OK|Cancel buttons
-    dialog.onreset = close;
-    dialog.onsubmit = function() {
-      if (key) {
-        setPassword(password.value, identity.value);
-      }
-      if (callback) {
-        callback();
-      }
-      return close();
-    };
-
-    // show dialog box
-    dialog.className = 'active';
-    return dialog;
+    gSimPinCheckBox.checked = simEnabled;
+    gChangeSimPinItem.hidden = !simEnabled;
   }
 
   updateSimStatus();

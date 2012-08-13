@@ -854,14 +854,37 @@
 
       <!-- sim pin input field -->
       <label for="password">
+        <span data-l10n-id="simPinErrorMsg" class="error" hidden>
+          The PIN was incorrect.
+        </span>
         <span id="simpin-count">3</span>
         <span data-l10n-id="simPinAttemptMsg">tries left.</span>
-        <input data-password data-ignore name="password" type="password" />
+        <input name="simpin" type="number" maxlength=8 />
       </label>
     </form>
 
-    <!-- sim pin pad -->
-    <div id="simpin-pad">
+    <!-- Security :: SIM Security :: SIM PIN Change Dialog -->
+    <form role="dialog" action="#sim" id="simpin-change">
+      <header>
+        <button type="reset" data-l10n-id="cancel">Cancel</button>
+        <button type="submit" data-l10n-id="ok">OK</button>
+        <h2 data-l10n-id="enterSimPin">Enter SIM PIN</h2>
+      </header>
+
+      <!-- sim pin input field -->
+      <label for="password">
+        <span data-l10n-id="simPinNotMatchMsg" class="error" hidden>
+          PINs don't match.
+        </span>
+        <span data-l10n-id="newSimPinMsg">Create PIN (must contain 4 to 8 digits)</span>
+        <input name="newSimpin" type="number" maxlength=8 />
+        <span data-l10n-id="confirmNewSimPinMsg">Confirm New PIN</span>
+        <input name="confirmNewSimpin" type="number" maxlength=8 />
+      </label>
+    </form>
+
+    <!-- number pad -->
+    <!--div id="number-pad" hidden>
       <a role="button" href="#" data-key="1">1</a>
       <a role="button" href="#" data-key="2">2</a>
       <a role="button" href="#" data-key="3">3</a>
@@ -874,7 +897,7 @@
       <a role="button" href="#" data-key=""></a>
       <a role="button" href="#" data-key="0">0</a>
       <a role="button" href="#" data-key="b">⌫</a>
-    </div>
+    </div-->
 
 
     <!-- [TODO] Security :: App Permissions -->

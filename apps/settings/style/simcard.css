@@ -14,8 +14,7 @@
   margin-bottom: 0.5em;
 }
 
-#simpin-pad {
-  display: none;
+#number-pad {
   position: absolute;
   z-index: 11;
   padding: 0 0;
@@ -27,11 +26,7 @@
   -moz-transform: translateY(0);
 }
 
-#simpin-pad .active {
-  display: block;
-}
-
-#simpin-pad > a {
+#number-pad > a {
   -moz-box-sizing: border-box;
   display: block;
   float: left;
@@ -53,7 +48,7 @@
   text-shadow: 0 0 3px #000;
 }
 
-#simpin-pad > a > span {
+#number-pad > a > span {
   pointer-events: none;
   font-size: 1.2rem;
   padding: 1.2rem;
@@ -66,13 +61,13 @@
   src: url('fonts/Keyboard-Symbols.woff');
 }
 
-#simpin-pad > a[data-key="b"] {
+#number-pad > a[data-key="b"] {
   display: block;
   text-align: center;
   font-family: 'Keyboard Symbols', sans-serif;
 }
 
-#simpin-pad > a:active {
+#number-pad > a:active {
   background-color: rgb(0, 0, 0);
   color: #ccc;
 }
