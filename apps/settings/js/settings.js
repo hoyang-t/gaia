@@ -155,6 +155,7 @@ var Settings = {
                    (input.type == 'password')) {
           value = input.value;
         }
+        dump("===== [Settings] key="+key+" value"+value);
         var cset = {}; cset[key] = value;
         settings.getLock().set(cset);
         break;
