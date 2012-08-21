@@ -120,6 +120,7 @@ window.addEventListener('localized', function simPinSettings(evt) {
         pin: inputPin,
         enabled: enabled
       });
+      dump("===== req "+req);
       req.onsuccess = function sp_unlockSuccess() {
         var res = req.result;
         dump("===== unlock result: " + res.success);
@@ -131,7 +132,7 @@ window.addEventListener('localized', function simPinSettings(evt) {
       };
       req.onerror = function sp_unlockError() {
         var res = req.result;
-        dump("===== unlock retry: "+ res.retryCount); 
+        dump("===== unlock retry: "+ res); 
         updateSimStatus();
       };
     });
