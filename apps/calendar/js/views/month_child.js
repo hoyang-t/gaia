@@ -1,20 +1,21 @@
 (function(window) {
   var template = Calendar.Templates.Month;
+  var Calc = Calendar.Calc;
 
   function Child() {
     Calendar.View.apply(this, arguments);
 
-    this.monthId = Calendar.Calc.getMonthId(this.month);
+    this.monthId = Calc.getMonthId(this.month);
     this.controller = this.app.timeController;
 
     this._days = Object.create(null);
-    this._timespan = this._setupTimespan(this.month);
+    this.timespan = Calc.spanOfMonth(this.month);
   }
 
   Child.prototype = {
     __proto__: Calendar.View.prototype,
 
-    INACTIVE: 'inactive',
+    ACTIVE: 'active',
 
     busyPrecision: (24 / 12),
 
@@ -62,41 +63,18 @@
 
     _dayId: function(date) {
       if (date instanceof Date) {
-        date = Calendar.Calc.getDayId(date);
+        date = Calc.getDayId(date);
       }
 
       return 'month-view-' + this.monthId + '-' + date;
     },
 
-    /**
-     * We care about 5 weeks (35 days)
-     */
-    _setupTimespan: function(approxStart) {
-      var approxEnd = new Date(approxStart.valueOf());
-      //TODO: Localization problems assuming
-      //length of week.
-
-      var weeks = (4 * 7) + 1;
-
-      approxEnd.setDate(approxStart.getDate() * weeks);
-
-      var start = Calendar.Calc.getWeekStartDate(approxStart);
-      var end = Calendar.Calc.getWeekEndDate(approxEnd);
-
-      return new Calendar.Timespan(
-        start,
-        end
-      );
-    },
-
     _initEvents: function() {
-      var busy = this.app.store('Busytime');
-      busy.observeTime(this._timespan, this);
+      this.controller.observeTime(this.timespan, this);
     },
 
     _destroyEvents: function() {
-      var busy = this.app.store('Busytime');
-      busy.removeTimeObserver(this._timespan, this);
+      this.controller.removeTimeObserver(this.timespan, this);
     },
 
     handleEvent: function(event) {
@@ -194,15 +172,15 @@
      * @param {Date} date representing a date.
      */
     _renderDay: function _renderDay(date) {
-      var month = Calendar.Calc.today.getMonth(),
-          id = Calendar.Calc.getDayId(date),
+      var month = Calc.today.getMonth(),
+          id = Calc.getDayId(date),
           state,
           units,
           busytimes = this.app.store('Busytime');
 
-      state = Calendar.Calc.relativeState(
+      state = Calc.relativeState(
         date,
-        this.controller.currentMonth
+        this.month
       );
 
       // register instance in map
@@ -217,16 +195,13 @@
     },
 
     /**
-     * Renders a week based on a start date.
+     * Renders a week from weekdays Array
      *
-     * @param {Object} object config options.
      */
-    _renderWeek: function _renderWeek(start) {
-      var days = Calendar.Calc.getWeeksDays(start),
-          output = [],
-          i = 0;
+    _renderWeek: function _renderWeek(days) {
+      var output = [];
 
-      for (i; i < days.length; i++) {
+      for (var i = 0; i < days.length; i++) {
         output.push(this._renderDay(days[i]));
       }
 
@@ -264,7 +239,7 @@
       var found;
 
       if (typeof(stringId) !== 'string') {
-        stringId = Calendar.Calc.getDayId(stringId);
+        stringId = Calc.getDayId(stringId);
       }
 
       id = this._dayId(stringId);
@@ -283,49 +258,54 @@
      * @return {String} return value.
      */
     _renderMonth: function _renderMonth() {
-      var date = this.month,
-          id = Calendar.Calc.getDayId(this.month),
-          weekList = [],
-          i;
+      var date = this.month;
+      var id = Calc.getDayId(this.month);
+      var weekList = [];
 
-      for (i = 0; i < 5; i++) {
-        var week = weekList.push(
-          this._renderWeek(
-            new Date(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate() + (i * 7)
-            )
-          )
+      var week = 0;
+      var slice;
+      var days = this.timespan.daysBetween();
+      var daysInWeek = Calc.daysInWeek();
+      var numberOfWeeks = days.length / daysInWeek;
+
+      for (week; week <= numberOfWeeks; week++) {
+        slice = days.splice(
+          0,
+          daysInWeek
         );
+        weekList.push(this._renderWeek(slice));
       }
 
       return template.month.render({
         id: id,
-        content: weekList.join('\n')
+        content: weekList.join('\n'),
+        additionalClass: 'weeks-' + numberOfWeeks
       });
     },
 
     _calculateBusytime: function(day, busytime) {
+      var startSame;
       var record = {
         _id: this.cssClean(busytime._id),
         eventId: busytime.eventId,
         calendarId: busytime.calendarId
       };
 
-      var startDateDay = busytime.startDate.getDate();
-      var endDateDay = busytime.endDate.getDate();
-      var targetDay = day.getDate();
-
-      if (targetDay == startDateDay) {
+      if (Calc.isSameDate(day, busytime.startDate)) {
+        startSame = true;
         record.start = this._hourToBusyUnit(
           busytime.startDate.getHours()
         );
       } else {
+        startSame = false;
         record.start = 1;
       }
 
-      if (targetDay == endDateDay) {
+      if (Calc.isSameDate(day, busytime.endDate)) {
+        if (!startSame && day.valueOf() === busytime.endDate.valueOf()) {
+          return false;
+        }
+
         var end = this._hourToBusyUnit(
           busytime.endDate.getHours()
         );
@@ -341,48 +321,61 @@
 
     _addBusytime: function(date, busytime) {
       var element = this._busyElement(date);
+      var data = this._calculateBusytime(date, busytime);
 
-      var html = template.busy.render(
-        this._calculateBusytime(date, busytime)
-      );
-
-      element.insertAdjacentHTML(
-        'afterbegin',
-        html
-      );
+      if (data) {
+        element.insertAdjacentHTML(
+          'afterbegin',
+          template.busy.render(data)
+        );
+      }
     },
 
     _renderBusytime: function(busytime) {
       // render out a busytime span
-      var span = this._timespan;
+      var span = this.timespan;
 
       // 1: busytime start/end occurs all on same month/day
       var start = busytime.startDate;
       var end = busytime.endDate;
 
-      if (Calendar.Calc.isSameDate(start, end)) {
+      if (Calc.isSameDate(start, end)) {
         return this._addBusytime(start, busytime);
       }
 
-      // 2: busytime start/end occurs on different days
-      if (!span.contains(start) && !span.contains(end)) {
-        // 2a: if its outside our range entirely
-        // we know its going to occur during every day
-        Object.keys(this._days).forEach(function(date) {
-          this._addBusytime(date, busytime);
-        }, this);
-      } else {
-        // 2b: if inside range
-        // get all dates (inclusive) that need to be
-        // updated.
-        var days = Calendar.Calc.daysBetween(
-          start,
-          end
-        );
+      if (busytime.start < span.start) {
+        start = new Date(span.start);
+      }
 
-        days.forEach(function(date) {
-          this._addBusytime(date, busytime);
-        }, this);
+      if (busytime.end > span.end) {
+        end = new Date(span.end);
+      }
+
+      var days = Calc.daysBetween(
+        start,
+        end
+      );
+
+      var i = 0;
+      var len = days.length;
+      var day;
+      var dayValue;
+
+      for (; i < len; i++) {
+        day = days[i];
+        dayValue = day.valueOf();
+
+        if (dayValue < this.timespan.start) {
+          continue;
+        }
+
+        if (dayValue > this.timespan.end) {
+          break;
+        }
+
+        // Verify that each add is only inside
+        // the current timespan.
+        this._addBusytime(day, busytime);
       }
 
     },
@@ -391,14 +384,14 @@
      * Activate this child view visually.
      */
     activate: function() {
-      this.element.classList.remove(this.INACTIVE);
+      this.element.classList.add(this.ACTIVE);
     },
 
     /**
      * Deactivate this child view visually.
      */
     deactivate: function() {
-      this.element.classList.add(this.INACTIVE);
+      this.element.classList.remove(this.ACTIVE);
     },
 
     /**
@@ -409,14 +402,17 @@
      *
      * @return {DOMElement} inserted dom node.
      */
-    attach: function(element) {
+    attach: function(element, prepend) {
       var html = this._renderMonth();
-      var busytimes = this.app.store('Busytime');
+      var controller = this.controller;
+      var position = prepend ? 'afterbegin' : 'beforeend';
 
-      element.insertAdjacentHTML('beforeend', html);
-      this.element = element.children[element.children.length - 1];
+      element.insertAdjacentHTML(position, html);
+      this.element = element.children[
+        prepend ? 0 : element.children.length - 1
+      ];
 
-      busytimes.busytimesInCachedSpan(this._timespan).forEach(
+      controller.queryCache(this.timespan).forEach(
         this._renderBusytime,
         this
       );

@@ -74,15 +74,11 @@ var LockScreen = {
     this.getAllElements();
 
     this.lockIfEnabled(true);
+    this.writeSetting(this.enabled);
 
     /* Status changes */
     window.addEventListener('volumechange', this);
     window.addEventListener('screenchange', this);
-
-    /* Notification */
-    // XXX: Move to notifications.js
-    this.notification.addEventListener('click', this);
-    window.addEventListener('mozChromeEvent', this);
 
     /* Gesture */
     this.area.addEventListener('mousedown', this);
@@ -177,28 +173,13 @@ var LockScreen = {
       case 'cardstatechange':
         this.updateConnState();
 
-      case 'mozChromeEvent':
-        if (!this.locked || evt.detail.type !== 'desktop-notification')
-          return;
-
-        this.showNotification(evt.detail);
-        break;
-
       case 'click':
-        switch (evt.currentTarget) {
-          case this.notification:
-            this.hideNotification();
-            break;
-          case this.passcodePad:
-            if (!evt.target.dataset.key)
-              break;
+        if (!evt.target.dataset.key)
+          break;
 
-            // Cancel the default action of <a>
-            evt.preventDefault();
-            this.handlePassCodeInput(evt.target.dataset.key);
-
-            break;
-        }
+        // Cancel the default action of <a>
+        evt.preventDefault();
+        this.handlePassCodeInput(evt.target.dataset.key);
         break;
 
       case 'mousedown':
@@ -317,8 +298,7 @@ var LockScreen = {
     var dx = pageX - touch.initX;
 
     var handleMax = touch.maxHandleOffset;
-    this.areaHandle.style.MozTransition = 'none';
-    this.areaHandle.style.MozTransform =
+    this.areaHandle.style.transform =
       'translateX(' + Math.max(- handleMax, Math.min(handleMax, dx)) + 'px)';
 
     var railMax = touch.initRailLength;
@@ -364,7 +344,6 @@ var LockScreen = {
   handleGesture: function ls_handleGesture() {
     var touch = this._touch;
     var target = touch.target;
-    this.areaHandle.style.MozTransition = null;
 
     if (!target) {
       this.unloadPanel();
@@ -375,7 +354,7 @@ var LockScreen = {
       (this.areaHandle.offsetWidth - target.offsetWidth) / 2;
     this.areaHandle.classList.add('triggered');
 
-    var transition = 'translateX(' + distance + 'px)';
+    var transformDistance = 'translateX(' + distance + 'px)';
     var railLength = touch.rightTarget.offsetLeft -
       touch.leftTarget.offsetLeft -
       (this.areaHandle.offsetWidth + target.offsetWidth) / 2;
@@ -407,11 +386,11 @@ var LockScreen = {
         };
 
 
-        if (this.areaHandle.style.MozTransform == transition) {
+        if (this.areaHandle.style.transform == transformDistance) {
           panelOrFullApp();
           break;
         }
-        this.areaHandle.style.MozTransform = transition;
+        this.areaHandle.style.transform = transformDistance;
 
         this.areaHandle.addEventListener('transitionend', function goCamera() {
           self.areaHandle.removeEventListener('transitionend', goCamera);
@@ -431,11 +410,11 @@ var LockScreen = {
           }
         };
 
-        if (this.areaHandle.style.MozTransform == transition) {
+        if (this.areaHandle.style.transform == transformDistance) {
           passcodeOrUnlock();
           break;
         }
-        this.areaHandle.style.MozTransform = transition;
+        this.areaHandle.style.transform = transformDistance;
 
         this.areaHandle.addEventListener('transitionend', function goUnlock() {
           self.areaHandle.removeEventListener('transitionend', goUnlock);
@@ -506,7 +485,12 @@ var LockScreen = {
       // also need to be reflected in apps/system/js/storage.js
       this.dispatchEvent('unlock');
       this.writeSetting(false);
-      this.hideNotification();
+
+      if (instant)
+        return;
+
+      var unlockAudio = new Audio('./resources/sounds/unlock.ogg');
+      unlockAudio.play();
     }
   },
 
@@ -529,6 +513,9 @@ var LockScreen = {
     this.updateTime();
 
     if (!wasAlreadyLocked) {
+      if (document.mozFullScreen)
+        document.mozCancelFullScreen();
+
       // Any changes made to this,
       // also need to be reflected in apps/system/js/storage.js
       this.dispatchEvent('lock');
@@ -548,7 +535,7 @@ var LockScreen = {
         // create the <iframe> and load the emergency call
         var frame = document.createElement('iframe');
 
-        frame.src = './emergency-call/';
+        frame.src = './emergency-call/index.html';
         frame.onload = function emergencyCallLoaded() {
           if (callback)
             callback();
@@ -561,7 +548,7 @@ var LockScreen = {
         // create the <iframe> and load the camera
         var frame = document.createElement('iframe');
 
-        frame.src = './camera/';
+        frame.src = './camera/index.html';
         var mainScreen = this.mainScreen;
         frame.onload = function cameraLoaded() {
           mainScreen.classList.add('lockscreen-camera');
@@ -603,7 +590,7 @@ var LockScreen = {
       default:
         var self = this;
         var unload = function unload() {
-          self.areaHandle.style.MozTransform =
+          self.areaHandle.style.transform =
             self.areaUnlock.style.opacity =
             self.railRight.style.opacity =
             self.areaCamera.style.opacity =
@@ -655,11 +642,11 @@ var LockScreen = {
       return;
 
     var d = new Date();
+    var f = new navigator.mozL10n.DateTimeFormat();
+    var _ = navigator.mozL10n.get;
 
-    // XXX: respect clock format in Settings
-    this.clock.textContent = d.toLocaleFormat('%R');
-
-    this.date.textContent = d.toLocaleFormat('%A %e %B');
+    this.clock.textContent = f.localeFormat(d, _('timeFormat') || '%R');
+    this.date.textContent = f.localeFormat(d, _('dateFormat') || '%A %e %B');
 
     var self = this;
     window.setTimeout(function ls_clockTimeout() {
@@ -669,14 +656,24 @@ var LockScreen = {
 
   updateConnState: function ls_updateConnState() {
     var conn = window.navigator.mozMobileConnection;
+    if (!conn)
+      return;
+
     var voice = conn.voice;
-    var connstate = this.connstate;
+    var connstateLine1 = this.connstate.firstElementChild;
+    var connstateLine2 = this.connstate.lastElementChild;
     var _ = navigator.mozL10n.get;
 
-    if (this.airplaneMode) {
-      connstate.dataset.l10nId = 'airplaneMode';
-      connstate.textContent = _('airplaneMode') || '';
+    // Reset line 2
+    connstateLine2.textContent = '';
 
+    var updateConnstateLine1 = function updateConnstateLine1(l10nId) {
+      connstateLine1.dataset.l10nId = l10nId;
+      connstateLine1.textContent = _(l10nId) || '';
+    };
+
+    if (this.airplaneMode) {
+      updateConnstateLine1('airplaneMode');
       return;
     }
 
@@ -687,8 +684,7 @@ var LockScreen = {
     // https://bugzilla.mozilla.org/show_bug.cgi?id=777057
     if (voice.state == 'notSearching') {
       // "No Network"
-      connstate.dataset.l10nId = 'noNetwork';
-      connstate.textContent = _('noNetwork') || '';
+      updateConnstateLine1('noNetwork');
 
       return;
     }
@@ -698,8 +694,7 @@ var LockScreen = {
       // voice.state can be any of the later three value.
       // (it's possible, briefly that the phone is 'registered'
       // but not yet connected.)
-      connstate.dataset.l10nId = 'searching';
-      connstate.textContent = _('searching') || '';
+      updateConnstateLine1('searching');
 
       return;
     }
@@ -707,32 +702,27 @@ var LockScreen = {
     if (voice.emergencyCallsOnly) {
       switch (conn.cardState) {
         case 'absent':
-          connstate.dataset.l10nId = 'emergencyCallsOnlyNoSIM';
-          connstate.textContent = _('emergencyCallsOnlyNoSIM') || '';
+          updateConnstateLine1('emergencyCallsOnlyNoSIM');
 
           break;
 
         case 'pinRequired':
-          connstate.dataset.l10nId = 'emergencyCallsOnlyPinRequired';
-          connstate.textContent = _('emergencyCallsOnlyPinRequired') || '';
+          updateConnstateLine1('emergencyCallsOnlyPinRequired');
 
           break;
 
         case 'pukRequired':
-          connstate.dataset.l10nId = 'emergencyCallsOnlyPukRequired';
-          connstate.textContent = _('emergencyCallsOnlyPukRequired') || '';
+          updateConnstateLine1('emergencyCallsOnlyPukRequired');
 
           break;
 
         case 'networkLocked':
-          connstate.dataset.l10nId = 'emergencyCallsOnlyNetworkLocked';
-          connstate.textContent = _('emergencyCallsOnlyNetworkLocked') || '';
+          updateConnstateLine1('emergencyCallsOnlyNetworkLocked');
 
           break;
 
         default:
-          connstate.dataset.l10nId = 'emergencyCallsOnly';
-          connstate.textContent = _('emergencyCallsOnly') || '';
+          updateConnstateLine1('emergencyCallsOnly');
 
           break;
       }
@@ -740,34 +730,31 @@ var LockScreen = {
       return;
     }
 
+    if (voice.network.mcc == 724 &&
+        voice.cell && voice.cell.gsmLocationAreaCode) {
+      // We are in Brazil, It is legally required to show local info
+      // about current registered GSM network in a legally specified way.
+      var lac = voice.cell.gsmLocationAreaCode % 100;
+      var carriers = MobileInfo.brazil.carriers;
+      var regions = MobileInfo.brazil.regions;
+
+      connstateLine2.textContent =
+        (carriers[voice.network.mnc] || ('724' + voice.network.mnc)) +
+        ' ' +
+        (regions[lac] ? regions[lac] + ' ' + lac : '');
+    }
+
     if (voice.roaming) {
       var l10nArgs = { operator: voice.network.shortName };
-      connstate.dataset.l10nId = 'roaming';
-      connstate.dataset.l10nArgs = JSON.stringify(l10nArgs);
-      connstate.textContent = _('roaming', l10nArgs);
+      connstateLine1.dataset.l10nId = 'roaming';
+      connstateLine1.dataset.l10nArgs = JSON.stringify(l10nArgs);
+      connstateLine1.textContent = _('roaming', l10nArgs);
 
       return;
     }
 
-    delete connstate.dataset.l10nId;
-    connstate.textContent = voice.network.shortName;
-  },
-
-  showNotification: function lockscreen_showNotification(detail) {
-    this.notification.hidden = false;
-
-    // XXX: pretty date, respect clock format in Settings
-    this.notificationTime.textContent = (new Date()).toLocaleFormat('%R');
-    this.notificationIcon.src = detail.icon;
-    this.notificationTitle.textContent = detail.title;
-    this.notificationDetail.textContent = detail.text;
-  },
-
-  hideNotification: function lockscreen_hideNotification() {
-    this.notification.hidden = true;
-    this.notificationTime.textContent = '';
-    this.notificationTitle.textContent = '';
-    this.notificationDetail.textContent = '';
+    delete connstateLine1.dataset.l10nId;
+    connstateLine1.textContent = voice.network.shortName;
   },
 
   updatePassCodeUI: function lockscreen_updatePassCodeUI() {
@@ -830,13 +817,10 @@ var LockScreen = {
   getAllElements: function ls_getAllElements() {
     // ID of elements to create references
     var elements = ['connstate', 'mute', 'clock', 'date',
-        'notification', 'notification-icon', 'notification-title',
-        'notification-detail', 'notification-time',
-        'area', 'area-unlock', 'area-camera', 'area-handle',
-        'rail-left', 'rail-right',
-        'passcode-code', 'passcode-pad',
-        'camera', 'accessibility-camera', 'accessibility-unlock',
-        'panel-emergency-call'];
+        'area', 'area-unlock', 'area-camera',
+        'area-handle', 'rail-left', 'rail-right', 'passcode-code',
+        'passcode-pad', 'camera', 'accessibility-camera',
+        'accessibility-unlock', 'panel-emergency-call'];
 
     var toCamelCase = function toCamelCase(str) {
       return str.replace(/\-(.)/g, function replacer(str, p1) {

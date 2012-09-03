@@ -41,21 +41,6 @@ body {
   visibility: hidden !important;
 }
 
-#homescreen {
-  position: absolute;
-  left: 0px;
-  top: 20px;
-  width: 100%;
-  height: -moz-calc(100% - 20px);
-  border: 0px;
-  overflow: hidden;
-}
-
-#screen.locked > #homescreen {
-  -moz-transition: visibility 0s linear 0.8s;
-  visibility: hidden;
-}
-
 #system-overlay {
   width: 100%;
   height: 100%;
@@ -67,15 +52,6 @@ body {
 
 #system-overlay.volume {
   display: block;
-}
-
-#screen.active-statusbar #homescreen {
-  top: 40px;
-  height: -moz-calc(100% - 40px);
-}
-
-#screen.active-application > #homescreen {
-  visibility: hidden;
 }
 
 #windows {
@@ -123,12 +99,16 @@ body {
   top: 40px;
 }
 
-#windows > iframe.appWindow.active {
+#windows > iframe.appWindow.active:not(.homescreen) {
   background-color: #fff;
 }
 
-#windows > iframe.appWindow:not(.active) {
+#windows > iframe.appWindow:not(.active):not(.homescreen) {
   visibility: hidden;
+}
+
+#screen.fullscreen-app > #windows > iframe.appWindow.active {
+  top: 0;
 }
 
 #windowSprite {
@@ -142,6 +122,11 @@ body {
   pointer-events: none;
   -moz-transform: scale(0.5);
   -moz-transition: -moz-transform 0.5s ease, opacity 0.3s ease;
+}
+
+#screen.fullscreen-app > #windowSprite {
+  height: 100%;
+  top: 0;
 }
 
 #windowSprite.open {

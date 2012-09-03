@@ -24,7 +24,7 @@
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
           if (xhr.status !== 200) {
-            cb(new Error('file not found or other error', xhr));
+            cb(new Error('file not found or other error (' + file + ')', xhr));
           } else {
             cb(null, xhr.responseText);
           }
@@ -186,7 +186,9 @@
   requireLib('set.js');
   requireLib('batch.js');
   requireLib('template.js');
+  requireLib('interval_tree.js');
   requireLib('responder.js');
+  requireLib('time_observer.js');
   requireLib('provider/abstract.js');
   requireLib('provider/local.js');
   requireLib('store/abstract.js');
