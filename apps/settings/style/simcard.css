@@ -14,6 +14,10 @@
   margin-bottom: 0.5em;
 }
 
+#simpin-confirm div {
+  font-size: 150%;
+}
+
 #simpin-confirm .error {
   color: red;
 }
@@ -22,11 +26,14 @@
   position: relative;
 }
 
-#simpin-confirm .input-wrapper input {
-  position: absolute;
-  top: 0;
-}
-
 #simpin-confirm .input-wrapper input[type=text] {
   pointer-events: none;
 }
+
+#simpin-confirm .input-wrapper input {
+  position: absolute;
+  top: 0;
+  font-size: 150%;
+  width: 80%;
+}
+

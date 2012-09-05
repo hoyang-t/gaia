@@ -16,6 +16,7 @@ window.addEventListener('localized', function simPinSettings(evt) {
   var gSimSecurityInfo = document.querySelector('#simCardLock-desc');
   var gSimPinCheckBox =  document.querySelector('#simpin-enabled input');
   var gChangeSimPinItem = document.querySelector('#simpin-change');
+  var gMaxRetries = 3;
   var tmpSimCardLock = false;
 
 
@@ -83,8 +84,30 @@ window.addEventListener('localized', function simPinSettings(evt) {
       var inputPin = simPinInput.valueEntered;
       dump("===== input pin : "+inputPin);
       clear();
-      if (callback)
-        callback(inputPin);
+
+      var req = gMobileConnection.unlockCardLock({
+        lockType: 'pin',
+        pin: inputPin
+      });
+
+      req.onsuccess = function sp_unlockSuccess() {
+        // reset retry count
+        retryCounter.textContent = gMaxRetries;
+        close();
+        if (callback)
+          callback(inputPin);
+      };
+
+      req.onerror = function sp_unlockError() {
+        var res = req.result;
+        var retry = -1;
+        if (res && res.retryCount) {
+          retry = res.retryCount;
+        }
+        errorMsg.hidden = false;
+        retryCounter.textContent = retry;
+      };
+
       return false; // ignore <form> action
     };
 
@@ -94,11 +117,6 @@ window.addEventListener('localized', function simPinSettings(evt) {
     }
 
     /* Public function */
-
-    function setCounter(count) {
-      errorMsg.hidden = false;
-      retryCounter.textContent = count;
-    }
 
     // show dialog box
     function show(cb) {
@@ -110,20 +128,21 @@ window.addEventListener('localized', function simPinSettings(evt) {
 
     function close() {
       clear();
-      updateSimStatus();
       dialog.removeAttribute('class');
       return false; // ignore <form> action
     }
 
     return {
-      setCounter: setCounter,
       show: show,
-      close: close
     };
   })();
 
+
+//  gChangeSimPinItem.onclick = 
   gSimPinCheckBox.onchange = function toggleSimPin() {
     var enabled = this.checked;
+    dump("==== pin enable checkbox: " + enabled);
+    this.checked = !enabled;  // not really enabled
     gSimPinConfirmDialog.show(function(inputPin) {
       dump("===== [callback] input pin : " + inputPin);
       // verify SIM PIN
@@ -135,21 +154,12 @@ window.addEventListener('localized', function simPinSettings(evt) {
       req.onsuccess = function sp_unlockSuccess() {
         var res = req.result;
 //      if (res.success) {
-          // --- test ---
-          settings.getLock().set({'simcard.enabled': enabled});
-          tmpSimCardLock = enabled;
-          // ------------
-          gSimPinConfirmDialog.setCounter(3);
-          gSimPinConfirmDialog.close();
+          tmpSimCardLock = enabled;  // --- test ---
+          updateSimStatus();
 //      }
       };
       req.onerror = function sp_unlockError() {
-        var res = req.result;
-        var retry = -1;
-        if (res && res.retryCount) {
-          retry = res.retryCount;
-        }
-        gSimPinConfirmDialog.setCounter(retry);
+        updateSimStatus();
       };
     });
   };

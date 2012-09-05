@@ -983,25 +983,23 @@
     <!-- Security :: SIM Security :: SIM PIN Input Dialog -->
     <form role="dialog" action="#sim" id="simpin-confirm">
       <header>
-        <button data-l10n-id="cancel" type="reset">Cancel</button>
+        <button data-l10n-id="back" type="reset">Back</button>
         <button data-l10n-id="ok" type="submit">OK</button>
         <h2 data-l10n-id="enterSimPin">Enter SIM PIN</h2>
       </header>
 
       <!-- sim pin input field -->
-      <label>
-        <div data-l10n-id="simPinErrorMsg" class="error" hidden>
-          The PIN was incorrect.
-        </div>
-        <div>
-          <span id="simpin-count">3</span>
-          <span data-l10n-id="simPinAttemptMsg">tries left.</span>
-        </div>
-        <div class="input-wrapper">
-          <input name="simpin" type="number" size="8" maxlength="8" />
-          <input name="simpinVis" type="text" size="8" maxlength="8" />
-        </div>
-      </label>
+      <div>
+        <span id="simpin-count">3</span>
+        <span data-l10n-id="simPinAttemptMsg">tries left.</span>
+      </div>
+      <div data-l10n-id="simPinErrorMsg" class="error" hidden>
+        The PIN was incorrect.
+      </div>
+      <div class="input-wrapper">
+        <input name="simpin" type="number" size="8" maxlength="8" />
+        <input name="simpinVis" type="text" size="8" maxlength="8" />
+      </div>
     </form>
 
 
