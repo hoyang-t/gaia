@@ -14,15 +14,19 @@
   margin-bottom: 0.5em;
 }
 
+#simpin-confirm .error {
+  color: red;
+}
+
 #simpin-confirm .input-wrapper {
   position: relative;
 }
 
-#simpin-confirm input {
+#simpin-confirm .input-wrapper input {
   position: absolute;
   top: 0;
 }
 
-#simpin-confirm input[type=text] {
+#simpin-confirm .input-wrapper input[type=text] {
   pointer-events: none;
 }

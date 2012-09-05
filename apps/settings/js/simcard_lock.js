@@ -16,6 +16,7 @@ window.addEventListener('localized', function simPinSettings(evt) {
   var gSimSecurityInfo = document.querySelector('#simCardLock-desc');
   var gSimPinCheckBox =  document.querySelector('#simpin-enabled input');
   var gChangeSimPinItem = document.querySelector('#simpin-change');
+  var tmpSimCardLock = false;
 
 
   function inputFieldWrapper(name) {
@@ -44,7 +45,6 @@ window.addEventListener('localized', function simPinSettings(evt) {
 
     function updateUI() {
       var len = valueEntered.length;
-      dump("===== valueEntered: " + valueEntered + " len "+ len);
       inputVisField.value = (new Array(len+1)).join('*');
     }
 
@@ -69,7 +69,10 @@ window.addEventListener('localized', function simPinSettings(evt) {
   //       has a suitable length (e.g. 4..8)
   var gSimPinConfirmDialog = (function() {
     var dialog = document.querySelector('#simpin-confirm');
+    var retryCounter = document.querySelector('#simpin-count');
+    var errorMsg = dialog.querySelector('.error');
     var simPinInput = inputFieldWrapper('simpin');
+
     var callback = null;
     if (!dialog)
       return null;
@@ -86,7 +89,15 @@ window.addEventListener('localized', function simPinSettings(evt) {
     };
 
     function clear() {
+      errorMsg.hidden = true;
       simPinInput.clear();
+    }
+
+    /* Public function */
+
+    function setCounter(count) {
+      errorMsg.hidden = false;
+      retryCounter.textContent = count;
     }
 
     // show dialog box
@@ -99,11 +110,13 @@ window.addEventListener('localized', function simPinSettings(evt) {
 
     function close() {
       clear();
+      updateSimStatus();
       dialog.removeAttribute('class');
       return false; // ignore <form> action
     }
 
     return {
+      setCounter: setCounter,
       show: show,
       close: close
     };
@@ -112,33 +125,37 @@ window.addEventListener('localized', function simPinSettings(evt) {
   gSimPinCheckBox.onchange = function toggleSimPin() {
     var enabled = this.checked;
     gSimPinConfirmDialog.show(function(inputPin) {
-      dump("===== [callback] input pin : "+inputPin);
-      dump("===== cardState "+ gMobileConnection.cardState);
+      dump("===== [callback] input pin : " + inputPin);
       // verify SIM PIN
       var req = gMobileConnection.setCardLock({
         lockType: 'pin',
         pin: inputPin,
         enabled: enabled
       });
-      dump("===== req "+req);
       req.onsuccess = function sp_unlockSuccess() {
         var res = req.result;
-        dump("===== unlock result: " + res.success);
-        if (res.success) {
-          dump("===== unlock type: " + res.lockType);
+//      if (res.success) {
+          // --- test ---
+          settings.getLock().set({'simcard.enabled': enabled});
+          tmpSimCardLock = enabled;
+          // ------------
+          gSimPinConfirmDialog.setCounter(3);
           gSimPinConfirmDialog.close();
-          updateSimStatus();
-        }
+//      }
       };
       req.onerror = function sp_unlockError() {
         var res = req.result;
-        dump("===== unlock retry: "+ res); 
-        updateSimStatus();
+        var retry = -1;
+        if (res && res.retryCount) {
+          retry = res.retryCount;
+        }
+        gSimPinConfirmDialog.setCounter(retry);
       };
     });
   };
 
   function updateSimStatus() {
+    dump("==== gMobileConnection.cardState: " + gMobileConnection.cardState);
     if (!gMobileConnection || gMobileConnection.cardState === 'absent') {
       gSimSecurityInfo.textContent = _('noSIMCard');
       gSimPinCheckBox.checked = false;
@@ -148,13 +165,20 @@ window.addEventListener('localized', function simPinSettings(evt) {
     // with SIM card, query its status
     var req = gMobileConnection.getCardLock('pin');
     req.onsuccess = function sp_checkSuccess() {
-      var enabled = req.result.enabled;
-      dump("===== sim pin is "+enabled);
+      var enabled = req.result.enabled || tmpSimCardLock;
+      dump("==== sim pin is " + enabled);
       gSimSecurityInfo.textContent = (enabled)? _('enabled') : _('disabled');
       gSimPinCheckBox.checked = enabled;
       gChangeSimPinItem.hidden = !enabled;
-    }
+    };
   }
+
+  var req = settings.getLock().get('simcard.enabled');
+  req.onsuccess = function bt_EnabledSuccess() {
+    if (req.result['simcard.enabled']) {
+      tmpSimCardLock = req.result['simcard.enabled'];
+    }
+  };
 
   updateSimStatus();
 
