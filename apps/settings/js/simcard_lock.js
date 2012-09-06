@@ -175,6 +175,7 @@ window.addEventListener('localized', function simPinSettings(evt) {
     // with SIM card, query its status
     var req = gMobileConnection.getCardLock('pin');
     req.onsuccess = function sp_checkSuccess() {
+      dump("==== req.result.enabled: " + req.result.enabled);
       var enabled = req.result.enabled || tmpSimCardLock;
       dump("==== sim pin is " + enabled);
       gSimSecurityInfo.textContent = (enabled)? _('enabled') : _('disabled');
