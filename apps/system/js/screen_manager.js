@@ -45,7 +45,7 @@ var ScreenManager = {
    * Preferred brightness without considering device light nor dimming
    * sync with setting 'screen.brightness'
   */
-  _brightness: 1,
+  _userBrightness: 1,
 
   /*
    * Wait for _dimNotice milliseconds during idle-screen-off
@@ -94,7 +94,7 @@ var ScreenManager = {
     this.idleObserver.onidle = function scm_onidle() {
       self._idled = true;
       if (!self._screenWakeLocked)
-        self.turnScreenOff(false);
+        self.turnScreenOff(self._instantIdleOff);
     };
 
     // When active, cancel the idle-screen-off process
@@ -102,7 +102,7 @@ var ScreenManager = {
       self._idled = false;
       if (self._inTransition) {
         self._inTransition = false;
-        navigator.mozPower.screenBrightness = self._brightness;
+        self.setScreenBrightness(self._userBrightness, true);
       }
     };
 
@@ -110,6 +110,7 @@ var ScreenManager = {
     SettingsListener.observe('screen.timeout', 60,
     function screenTimeoutChanged(value) {
       self._idleTimeout = value;
+      self.setIdleTimeout(self._idleTimeout)
 
       if (!self._firstOn) {
         (function handleInitlogo() {
@@ -122,24 +123,26 @@ var ScreenManager = {
         })();
 
         self._firstOn = true;
-        self.turnScreenOn();
+
+        // During boot up, the brightness was set by bootloader as 0.5,
+        // Let's set the API value to that so setScreenBrightness() can
+        // dim nicely to value set by user.
+        power.screenBrightness = 0.5;
+
+        // Turn screen on with dim.
+        self.turnScreenOn(false);
       }
     });
 
     SettingsListener.observe('screen.automatic-brightness', true,
     function deviceLightSettingChanged(value) {
-      if (typeof value === 'string')
-        value = (value == 'true');
-
       self.setDeviceLightEnabled(value);
     });
 
     SettingsListener.observe('screen.brightness', 1,
     function brightnessSettingChanged(value) {
-      if (typeof value === 'string')
-        value = parseFloat(value);
-
-      self.setBrightness(value);
+      self._userBrightness = value;
+      self.setScreenBrightness(value, false);
     });
   },
 
@@ -152,8 +155,8 @@ var ScreenManager = {
 
         // This is a rather naive but pretty effective heuristic
         var brightness =
-          Math.max(Math.min((evt.value / 1100), this._brightness), 0.2);
-        navigator.mozPower.screenBrightness = brightness;
+          Math.max(Math.min((evt.value / 1100), this._userBrightness), 0.1);
+        this.setScreenBrightness(brightness, false);
 
         break;
 
@@ -188,40 +191,18 @@ var ScreenManager = {
     if (!this.screenEnabled)
       return false;
 
-    window.removeEventListener('devicelight', this);
-    window.removeEventListener('mozfullscreenchange', this);
-
     var self = this;
-    var screenBrightness = navigator.mozPower.screenBrightness;
-
-    var dim = function scm_dim() {
-      if (!self._inTransition)
-        return;
-
-      screenBrightness -= 0.02;
-
-      if (screenBrightness < 0.1) {
-        setTimeout(function noticeTimeout() {
-          if (!self._inTransition)
-            return;
-
-          finish();
-        }, self._dimNotice);
-        return;
-      }
-
-      navigator.mozPower.screenBrightness = screenBrightness;
-      setTimeout(dim, 10);
-    };
-
-    var finish = function scm_finish() {
+    var screenOff = function scm_screenOff() {
       self.setIdleTimeout(0);
+
+      window.removeEventListener('devicelight', self);
+      window.removeEventListener('mozfullscreenchange', self);
 
       self.screenEnabled = false;
       self._inTransition = false;
       self.screen.classList.add('screenoff');
       setTimeout(function realScreenOff() {
-        navigator.mozPower.screenBrightness = 0;
+        self.setScreenBrightness(0, true);
         navigator.mozPower.screenEnabled = false;
       }, 20);
 
@@ -229,65 +210,116 @@ var ScreenManager = {
     };
 
     if (instant) {
-      finish();
-    } else {
-      this._inTransition = true;
-      dim();
+      screenOff();
+      return true;
     }
+
+    this.setScreenBrightness(0.1, false);
+    this._inTransition = true;
+    setTimeout(function noticeTimeout() {
+      if (!self._inTransition)
+        return;
+
+      screenOff();
+    }, self._dimNotice);
 
     return true;
   },
 
-  turnScreenOn: function scm_turnScreenOn() {
+  turnScreenOn: function scm_turnScreenOn(instant) {
     if (this.screenEnabled)
       return false;
 
-    window.addEventListener('devicelight', this);
     window.addEventListener('mozfullscreenchange', this);
 
+    this.setScreenBrightness(this._userBrightness, instant);
+
     var power = navigator.mozPower;
-    if (power) {
-      navigator.mozPower.screenEnabled = this.screenEnabled = true;
-      navigator.mozPower.screenBrightness = this._brightness;
-    }
+    if (power)
+      power.screenEnabled = true;
+
+    this.screenEnabled = true;
     this.screen.classList.remove('screenoff');
+
+    // Attaching the event listener effectively turn on the hardware
+    // device light sensor, which _must be_ done after power.screenEnabled.
+    if (this._deviceLightEnabled)
+      window.addEventListener('devicelight', this);
 
     // The screen should be turn off with shorter timeout if
     // it was never unlocked
     if (LockScreen.locked) {
-      this.setIdleTimeout(10 * 1000);
+      this.setIdleTimeout(10, true);
       var self = this;
-      window.addEventListener('unlock', function scm_unlocked() {
-        window.removeEventListener('unlock', scm_unlocked);
-        self.setIdleTimeout(self._idleTimeout);
-      });
+      var stopShortIdleTimeout = function scm_stopShortIdleTimeout() {
+        window.removeEventListener('unlock', stopShortIdleTimeout);
+        window.removeEventListener('lockpanelchange', stopShortIdleTimeout);
+        self.setIdleTimeout(self._idleTimeout, false);
+      };
+
+      window.addEventListener('unlock', stopShortIdleTimeout);
+      window.addEventListener('lockpanelchange', stopShortIdleTimeout);
     } else {
-      this.setIdleTimeout(this._idleTimeout);
+      this.setIdleTimeout(this._idleTimeout, false);
     }
 
     this.fireScreenChangeEvent();
     return true;
   },
 
-  setBrightness: function scm_setBrightness(brightness) {
-    this._brightness = brightness;
+  setScreenBrightness: function scm_setScreenBrightness(brightness, instant) {
+    this._targetBrightness = brightness;
     var power = navigator.mozPower;
     if (!power)
       return;
 
-    /* Disregard devicelight value here and be responsive to setting changes.
-    * Actual screen brightness will be updated shortly
-    * with next devicelight event.
-    */
-    navigator.mozPower.screenBrightness = this._brightness;
+    if (typeof instant !== 'boolean')
+      instant = true;
+
+    if (instant) {
+      power.screenBrightness = brightness;
+      return;
+    }
+
+    this.transitionBrightness();
+  },
+
+  transitionBrightness: function scm_transitionBrightness() {
+    var self = this;
+    var screenBrightness = navigator.mozPower.screenBrightness;
+
+    if (Math.abs(this._targetBrightness - screenBrightness) < 0.05)
+      return;
+
+    var dalta = 0.02;
+    if (screenBrightness > this._targetBrightness)
+      dalta *= -1;
+
+    screenBrightness += dalta;
+    navigator.mozPower.screenBrightness = screenBrightness;
+
+    clearTimeout(this._transitionBrightnessTimer);
+    this._transitionBrightnessTimer =
+      setTimeout(function transitionBrightnessTimeout() {
+        self.transitionBrightness();
+      }, 10);
   },
 
   setDeviceLightEnabled: function scm_setDeviceLightEnabled(enabled) {
-    if (!enabled && this._deviceLightEnabled && navigator.mozPower) {
+    if (!enabled && this._deviceLightEnabled) {
       // Disabled -- set the brightness back to preferred brightness
-      navigator.mozPower.screenBrightness = this._brightness;
+      this.setScreenBrightness(this._userBrightness, false);
     }
     this._deviceLightEnabled = enabled;
+
+    if (!this.screenEnabled)
+      return;
+
+    if (enabled) {
+      window.addEventListener('devicelight', this);
+    } else {
+      window.removeEventListener('devicelight', this);
+    }
   },
 
   // The idleObserver that we will pass to IdleAPI
@@ -296,7 +328,7 @@ var ScreenManager = {
     onactive: null
   },
 
-  setIdleTimeout: function scm_setIdleTimeout(time) {
+  setIdleTimeout: function scm_setIdleTimeout(time, instant) {
     if (!('addIdleObserver' in navigator))
       return;
     navigator.removeIdleObserver(this.idleObserver);
@@ -305,14 +337,10 @@ var ScreenManager = {
       return;
     }
 
+    this._instantIdleOff = instant;
     this.idleObserver.time = time;
-    // XXX: wrap addIdleObserver in try catch to workaround
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=781076
-    try {
-      navigator.addIdleObserver(this.idleObserver);
-    } catch (e) {
-      console.log(e);
-    }
+    navigator.addIdleObserver(this.idleObserver);
+    this.isIdleObserverInitialized = true;
   },
 
   fireScreenChangeEvent: function scm_fireScreenChangeEvent() {
@@ -324,7 +352,4 @@ var ScreenManager = {
   }
 };
 
-window.addEventListener('load', function loadScreenManager() {
-  window.removeEventListener('load', loadScreenManager);
-  ScreenManager.init();
-});
+ScreenManager.init();
