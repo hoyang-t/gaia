@@ -4,7 +4,7 @@
 var _ = navigator.mozL10n.get;
 
 var SimPinDialog = {
-  dialog: document.getElementById('simpin-unlock'),
+  dialog: document.getElementById('simpin-dialog'),
   dialogTitle: document.querySelector('form header h2'),
 
   pinArea: document.getElementById('pinArea'),
@@ -50,7 +50,7 @@ var SimPinDialog = {
         valueEntered += key;
       }
       displayField.value = encryption(valueEntered);
-    }
+    });
 
     function encryption(str) {
       return (new Array(str.length + 1)).join('*');
@@ -87,10 +87,10 @@ var SimPinDialog = {
         this.errorMsgBody.textContent = _('enterPukMsg');
         this.errorMsg.hidden = false;
         this.pukArea.hidden = false;
-        this.pukInput.focus();
+        //this.pukInput.focus();
         break;
       case 'absent':
-        this.close();
+        this.skip();
         break;
     }
     this.dialogTitle.textContent = _(this.lockType + 'Title');
@@ -141,15 +141,14 @@ var SimPinDialog = {
     var req = this.mobileConnection.setCardLock({
       lockType: 'pin',
       pin: pin,
-      enabled: enabled
+      enabled: SimPinLock.simPinCheckBox.checked
     });
-
-    req.onsuccess = function sp_unlockSuccess() {
-      // XXX update SIN Security info
+    req.onsuccess = function spl_enableSuccess() {
       self.close();
+      if (self.onsuccess)
+        self.onsuccess();
     };
-
-    req.onerror = function sp_unlockError() {
+    req.onerror = function spl_enableError() {
       var retry = (req.result && req.result.retryCount)? 
         parseInt(req.result.retryCount, 10) : -1;
       self.showErrorMsg(retry, 'pin');
@@ -176,6 +175,7 @@ var SimPinDialog = {
         this.changePin();
         break;
     }
+    return false;
   },
 
 
@@ -196,9 +196,11 @@ var SimPinDialog = {
         this.handleCardState();
         break;
       case 'enable':
-        this.pukInput = this.getNumberPasswordInputField('simpuk');
-        this.newPinInput = this.getNumberPasswordInputField('newSimpin');
-        this.confirmPinInput = this.getNumberPasswordInputField('confirmNewSimpin');
+        this.pinArea.hidden = false;
+        this.pukArea.hidden = true;
+        this.newPinArea.hidden = true;
+        this.confirmPinArea.hidden = true;
+        this.pinInput.focus();
         break;
       case 'changePin':
         break;
@@ -213,9 +215,13 @@ var SimPinDialog = {
 
   close: function spl_close() {
     this.clear();
+    this.dialog.removeAttribute('class');
+  },
+
+  skip: function spl_skip() {
+    this.close();
     if (this.oncancel)
       this.oncancel();
-    this.dialog.removeAttribute('class');
     return false;
   },
 
@@ -233,4 +239,6 @@ var SimPinDialog = {
   }
 }
 
-SimPinDialog.init();
+window.addEventListener('localized', function spl_ready() {
+  SimPinDialog.init();
+});

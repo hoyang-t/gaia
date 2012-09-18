@@ -13,7 +13,7 @@ var SimPinLock = {
   updateSimCardStatus: function spl_updateSimStatus() {
     if (this.mobileConnection.cardState === 'absent') {
       this.simSecurityInfo.textContent = _('noSimCard');
-      this.simPinCheckBox.checked = false;
+      this.simPinCheckBox.disabled = true;
       this.changeSimPinItem.hidden = true;
       return;
     } 
@@ -24,31 +24,33 @@ var SimPinLock = {
       var enabled = req.result.enabled;
       dump("==== sim pin is " + enabled);
       self.simSecurityInfo.textContent = (enabled)? _('enabled') : _('disabled');
+      self.simPinCheckBox.disabled = false;
       self.simPinCheckBox.checked = enabled;
       self.changeSimPinItem.hidden = !enabled;
     };
-  }
+  },
 
   init: function spl_init() {
     this.mobileConnection = window.navigator.mozMobileConnection;
-    this.mobileConnection.addEventListener('cardstatechange', this);
-    this.dialog.onreset = this.close.bind(this);
-    this.dialog.onsubmit = this.verify.bind(this);
+
+    var self = this;
     this.simPinCheckBox.onchange = function spl_toggleSimPin() {
-      var enabled = this.checked;
-      this.show();
+      SimPinDialog.show('enable', 
+          function() { 
+            self.updateSimCardStatus(); 
+          },
+          function() {
+            this.checked = !this.checked;
+            self.updateSimCardStatus(); 
+          }
+      );
     };
 
-    this.pinInput = this.getNumberPasswordInputField('simpin');
-    this.pukInput = this.getNumberPasswordInputField('simpuk');
-    this.newPinInput = this.getNumberPasswordInputField('newSimpin');
-    this.confirmPinInput = this.getNumberPasswordInputField('confirmNewSimpin');
-
-    this.handleCardState();
+    this.updateSimCardStatus();
   }
 
 };
 
-window.addEventListener('localized', function showPanel() {
+window.addEventListener('localized', function spl_ready() {
   SimPinLock.init();
 });

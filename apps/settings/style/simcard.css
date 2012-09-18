@@ -1,20 +1,39 @@
+#sim dl > * {
+  line-height: 1.2em;
+}
+
+#sim dt {
+  margin-left: 0.5em;
+  font-weight: bold;
+}
+
+#sim dd {
+  margin-right: 0.5em;
+  margin-bottom: 0.5em;
+}
+
 [role="dialog"] header button {
   font-size: 1.2em;
 }
+
 [role="dialog"] .error {
   color: red; 
   padding-left: 20px;
 }
+
 [role="dialog"] .input-wrapper {
   position: relative;
   padding-left: 20px;
 }
+
 [role="dialog"] .input-wrapper input {
   font-size: 2.6em;
 }
+
 [role="dialog"] .input-wrapper input[type="text"] {
   width: auto;
   pointer-events: none;
   position: absolute;
   top: 0;
 }
+
