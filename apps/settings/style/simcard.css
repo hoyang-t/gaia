@@ -1,39 +1,20 @@
-/* SIM PIN property lists */
-
-#sim dl > * {
-  line-height: 1.2em;
+[role="dialog"] header button {
+  font-size: 1.2em;
 }
-
-#sim dt {
-  margin-left: 0.5em;
-  font-weight: bold;
+[role="dialog"] .error {
+  color: red; 
+  padding-left: 20px;
 }
-
-#sim dd {
-  margin-right: 0.5em;
-  margin-bottom: 0.5em;
-}
-
-#simpin-confirm div {
-  font-size: 150%;
-}
-
-#simpin-confirm .error {
-  color: red;
-}
-
-#simpin-confirm .input-wrapper {
+[role="dialog"] .input-wrapper {
   position: relative;
+  padding-left: 20px;
 }
-
-#simpin-confirm .input-wrapper input[type=text] {
+[role="dialog"] .input-wrapper input {
+  font-size: 2.6em;
+}
+[role="dialog"] .input-wrapper input[type="text"] {
+  width: auto;
   pointer-events: none;
-}
-
-#simpin-confirm .input-wrapper input {
   position: absolute;
   top: 0;
-  font-size: 150%;
-  width: 80%;
 }
-

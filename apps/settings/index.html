@@ -1061,16 +1061,17 @@
     <!-- [TODO] Security :: Phone Lock -->
 
     <!-- Security :: SIM Security -->
-    <section role="document" id="sim">
+    <section role="region" id="sim">
       <header>
-        <h1>
-          <a href="#root" data-l10n-id="simSecurity">SIM Security</a>
+        <a href="#root"><span class="icon icon-back">back</span></a>
+        <h1 data-l10n-id="simSecurity">
+          SIM Security
         </h1>
       </header>
 
       <ul>
         <li id="simpin-enabled">
-          <label>
+          <label class="switch">
             <input type="checkbox"/>
             <span></span>
           </label>
@@ -1079,20 +1080,22 @@
       </ul>
 
       <dl>
-        <dt data-l10n-id="simPinIntro">What is a SIM PIN?</dt>
-        <dd>
+        <dt data-l10n-id="whatIsSimPin">What is a SIM PIN?</dt>
+        <dd data-l10n-id="simPinIntro1">
           A SIM PIN prevents access to the SIM card's
           cellular data networks. When it's on, any device
           containing the SIM card will request the PIN upon
           restart.</dd>
-        <dd>
+        <dd data-l10n-id="simPinIntro2">
           A SIM PIN is not the same as the Passcode used
           to unlock the device.</dd>
       </dl>
 
       <ul>
         <li id="simpin-change">
-          <button data-l10n-id="changeSimPin" name="changeSimPin">Change PIN</button>
+          <label>
+            <button data-l10n-id="changeSimPin" name="changeSimPin">Change PIN</button>
+          </label>
         </li>
       </ul>
     </section>
@@ -1100,22 +1103,46 @@
     <!-- Security :: SIM Security :: SIM PIN Input Dialog -->
     <form role="dialog" action="#sim" id="simpin-confirm">
       <header>
-        <button data-l10n-id="back" type="reset">Back</button>
-        <button data-l10n-id="ok" type="submit">OK</button>
-        <h2 data-l10n-id="enterSimPin">Enter SIM PIN</h2>
+        <button data-l10n-id="cancel" type="reset">Cancel</button>
+        <button data-l10n-id="done" type="submit">Done</button>
+        <h2></h2>
       </header>
 
+      <div id="errorMsg" class="error" hidden>
+        <div id="messageHeader">The PIN was incorrect.</div>
+        <span id="messageBody">3 tries left.</span>
+      </div>
       <!-- sim pin input field -->
-      <div>
-        <span id="simpin-count">3</span>
-        <span data-l10n-id="simPinAttemptMsg">tries left.</span>
+      <div id="pinArea">
+        <div class="input-wrapper">
+          <input name="simpin" type="number" size="8" maxlength="8" />
+          <input name="simpinVis" type="text" size="8" maxlength="8"/>
+        </div>
       </div>
-      <div data-l10n-id="simPinErrorMsg" class="error" hidden>
-        The PIN was incorrect.
+      <!-- sim puk input field -->
+      <div id="pukArea">
+        <div class="input-wrapper">
+          <input name="simpuk" type="number" size="8" maxlength="8" />
+          <input name="simpukVis" type="text" size="8" maxlength="8"/>
+        </div>
       </div>
-      <div class="input-wrapper">
-        <input name="simpin" type="number" size="8" maxlength="8" />
-        <input name="simpinVis" type="text" size="8" maxlength="8" />
+      <!-- new sim pin input field -->
+      <div id="newPinArea">
+        <div data-l10n-id="newSimPinMsg">
+          Create PIN (must contain 4 to 8 digits)
+        </div>
+        <div class="input-wrapper">
+          <input name="newSimpin" type="number" size="8" maxlength="8" />
+          <input name="newSimpinVis" type="text" size="8" maxlength="8" />
+        </div>
+      </div>
+      <!-- confirm new sim pin input field -->
+      <div id="confirmPinArea">
+        <div>Confirm New PIN</div>
+        <div class="input-wrapper">
+          <input name="confirmNewSimpin" type="number" size="8" maxlength="8" />
+          <input name="confirmNewSimpinVis" type="text" size="8" maxlength="8" />
+        </div>
       </div>
     </form>
 
