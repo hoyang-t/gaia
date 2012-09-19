@@ -5,7 +5,8 @@ var _ = navigator.mozL10n.get;
 
 var SimPinDialog = {
   dialog: document.getElementById('simpin-dialog'),
-  dialogTitle: document.querySelector('form header h2'),
+  dialogTitle: document.querySelector('#simpin-dialog header h2'),
+  dialogDone: document.querySelector('#simpin-dialog button[type="submit"]'),
 
   pinArea: document.getElementById('pinArea'),
   pukArea: document.getElementById('pukArea'),
@@ -32,6 +33,7 @@ var SimPinDialog = {
     var valueEntered = '';
     var inputField = document.querySelector('input[name="'+name+'"]');
     var displayField = document.querySelector('input[name="'+name+'Vis"]');
+    var self = this;
     inputField.addEventListener("keypress", function(evt) {
       if (evt.target !== inputField)
         return;
@@ -50,6 +52,8 @@ var SimPinDialog = {
         valueEntered += key;
       }
       displayField.value = encryption(valueEntered);
+      if (displayField.value.length >= 4)
+        self.dialogDone.disabled = false;
     });
 
     function encryption(str) {
@@ -79,6 +83,7 @@ var SimPinDialog = {
       case 'pinRequired':
         this.lockType = 'pin';
         this.errorMsg.hidden = true;
+        this.inputFieldControl(true, false, false);
         this.pinInput.focus();
         break;
       case 'pukRequired':
@@ -86,8 +91,8 @@ var SimPinDialog = {
         this.errorMsgHeader.textContent = _('simCardLockedMsg');
         this.errorMsgBody.textContent = _('enterPukMsg');
         this.errorMsg.hidden = false;
-        this.pukArea.hidden = false;
-        //this.pukInput.focus();
+        this.inputFieldControl(false, true, true);
+        this.pukInput.focus();
         break;
       case 'absent':
         this.skip();
@@ -109,16 +114,35 @@ var SimPinDialog = {
     if (pin === '')
       return false;
 
-    var self = this;
-    var req = this.mobileConnection.unlockCardLock({
-      lockType: 'pin',
-      pin: pin
-    });
+    var options = {lockType: 'pin', pin: pin };
+    this.unlockCardLock(options);
+    this.clear();
+  },
 
+  unlockPuk: function spl_unlockPuk() {
+    var puk = this.pukInput.value;
+    var newPin = this.newPinInput.value;
+    var confirmPin = this.confirmPinInput.value;
+    if (puk === '' || newPin === '' || confirmPin === '')
+      return false;
+
+    if (newPin !== confirmPin) {
+      this.errorMsgHeader.textContent = _('newPinErrorMsg');
+      this.errorMsgBody.textContent = '';
+      this.errorMsg.hidden = false;
+      return false;
+    }
+    var options = {lockType: 'puk', pin: pin, newPin: newPin };
+    this.unlockCardLock(options);
+    this.clear();
+  },
+
+  unlockCardLock: function spl_unlockCardLock(options) {
+    var self = this;
+    var req = this.mobileConnection.unlockCardLock(options);
     req.onsuccess = function sp_unlockSuccess() {
       self.close();
     };
-
     req.onerror = function sp_unlockError() {
       var retry = (req.result && req.result.retryCount)? 
         parseInt(req.result.retryCount, 10) : -1;
@@ -126,23 +150,39 @@ var SimPinDialog = {
       self.pinInput.focus();
     };
   },
-
-  unlockPuk: function spl_unlockPuk() {
-    if (this.pukInput.value === '')
-      return false;
-  },
   
   enableLock: function spl_enableLock(enabled) {
     var pin = this.pinInput.value;
     if (pin === '')
       return false;
 
+    var enabled = SimPinLock.simPinCheckBox.checked;
+    var options = {lockType: 'pin', pin: pin, enabled: enabled};
+    this.setCardLock(options);
+    this.clear();
+  },
+
+  changePin: function spl_changePin() {
+    var pin = this.pinInput.value;
+    var newPin = this.newPinInput.value;
+    var confirmPin = this.confirmPinInput.value;
+    if (pin === '' || newPin === '' || confirmPin === '')
+      return false;
+
+    if (newPin !== confirmPin) {
+      this.errorMsgHeader.textContent = _('newPinErrorMsg');
+      this.errorMsgBody.textContent = '';
+      this.errorMsg.hidden = false;
+      return false;
+    }
+    var options = {lockType: 'pin', pin: pin, newPin: newPin};
+    this.setCardLock(options);
+    this.clear();
+  },
+ 
+  setCardLock: function spl_setCardLock(options) {
     var self = this;
-    var req = this.mobileConnection.setCardLock({
-      lockType: 'pin',
-      pin: pin,
-      enabled: SimPinLock.simPinCheckBox.checked
-    });
+    var req = this.mobileConnection.setCardLock(options);
     req.onsuccess = function spl_enableSuccess() {
       self.close();
       if (self.onsuccess)
@@ -155,8 +195,11 @@ var SimPinDialog = {
       self.pinInput.focus();
     };
   },
-
-  changePin: function spl_changePin() {
+  inputFieldControl: function spl_inputField(isPin,  isPuk, isNewPin) {
+    this.pinArea.hidden = !isPin;
+    this.pukArea.hidden = !isPuk;
+    this.newPinArea.hidden = !isNewPin;
+    this.confirmPinArea.hidden = !isNewPin;
   },
   
   verify: function spl_verify() {
@@ -190,27 +233,31 @@ var SimPinDialog = {
   onsuccess: null,
   oncancel: null,
   show: function spl_show(action, onsuccess, oncancel) {
+    this.dialogDone.disabled = true;
     this.action = action;
     switch(action) {
       case 'unlock':
         this.handleCardState();
         break;
       case 'enable':
-        this.pinArea.hidden = false;
-        this.pukArea.hidden = true;
-        this.newPinArea.hidden = true;
-        this.confirmPinArea.hidden = true;
-        this.pinInput.focus();
+        this.inputFieldControl(true, false, false);
         break;
       case 'changePin':
+        this.inputFieldControl(true, false, true);
         break;
     }
 
     if (onsuccess && typeof onsuccess === 'function')
       this.onsuccess = onsuccess;
-    if (oncancel && typeof oncancel === 'function')
+    if (oncancel && typeof oncancel === 'function') 
       this.oncancel = oncancel;
+    
     this.dialog.className = 'active';
+
+    if (action == 'unlock' && this.lockType == 'puk')
+      this.pukInput.focus();
+    else
+      this.pinInput.focus();
   },
 
   close: function spl_close() {
@@ -220,8 +267,9 @@ var SimPinDialog = {
 
   skip: function spl_skip() {
     this.close();
-    if (this.oncancel)
+    if (this.oncancel) 
       this.oncancel();
+    
     return false;
   },
 
@@ -229,7 +277,7 @@ var SimPinDialog = {
     this.mobileConnection = window.navigator.mozMobileConnection;
     this.mobileConnection.addEventListener('cardstatechange', 
         this.handleCardState.bind(this));
-    this.dialog.onreset = this.close.bind(this);
+    this.dialog.onreset = this.skip.bind(this);
     this.dialog.onsubmit = this.verify.bind(this);
 
     this.pinInput = this.getNumberPasswordInputField('simpin');

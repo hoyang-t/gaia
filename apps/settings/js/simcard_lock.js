@@ -7,6 +7,7 @@ var SimPinLock = {
   simSecurityInfo: document.getElementById('simCardLock-desc'),
   simPinCheckBox:  document.querySelector('#simpin-enabled input'),
   changeSimPinItem: document.getElementById('simpin-change'),
+  changeSimPinButton: document.querySelector('#simpin-change button'),
 
   mobileConnection: null,
 
@@ -22,7 +23,6 @@ var SimPinLock = {
     var req = this.mobileConnection.getCardLock('pin');
     req.onsuccess = function spl_checkSuccess() {
       var enabled = req.result.enabled;
-      dump("==== sim pin is " + enabled);
       self.simSecurityInfo.textContent = (enabled)? _('enabled') : _('disabled');
       self.simPinCheckBox.disabled = false;
       self.simPinCheckBox.checked = enabled;
@@ -35,15 +35,19 @@ var SimPinLock = {
 
     var self = this;
     this.simPinCheckBox.onchange = function spl_toggleSimPin() {
+      var enabled = this.checked;
       SimPinDialog.show('enable', 
           function() { 
             self.updateSimCardStatus(); 
           },
           function() {
-            this.checked = !this.checked;
+            self.simPinCheckBox.checked = !enabled;
             self.updateSimCardStatus(); 
           }
       );
+    };
+    this.changeSimPinButton.onclick = function spl_changePin() {
+      SimPinDialog.show('changePin', null, null); 
     };
 
     this.updateSimCardStatus();
