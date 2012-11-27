@@ -1,12 +1,12 @@
 {
   "name": "Template",
   "description": "Web app template",
+  "type": "certified",
   "launch_path": "/index.html",
   "developer": {
     "name": "The Gaia Team",
     "url": "https://github.com/mozilla-b2g/gaia"
   },
-
   "permissions": {
     "mobileconnection":{},
     "mozBluetooth":{},
@@ -17,17 +17,8 @@
     "wifi":{},
     "desktop-notification":{}
   },
-
   "locales": {
     "ar": {
-      "name": "Template",
-      "description": "Web app template"
-    },
-    "de": {
-      "name": "Template",
-      "description": "Web app template"
-    },
-    "el": {
       "name": "Template",
       "description": "Web app template"
     },
@@ -35,23 +26,7 @@
       "name": "Tool",
       "description": "Web app tool"
     },
-    "es": {
-      "name": "Template",
-      "description": "Web app template"
-    },
     "fr": {
-      "name": "Template",
-      "description": "Web app template"
-    },
-    "it": {
-      "name": "Template",
-      "description": "Web app template"
-    },
-    "pt-BR": {
-      "name": "Template",
-      "description": "Web app template"
-    },
-    "ru": {
       "name": "Template",
       "description": "Web app template"
     },

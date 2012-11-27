@@ -63,6 +63,7 @@ var Settings = {
     var input = event.target;
     var type = input.dataset.type || input.type; // bug344618
     var key = input.name;
+    dump("==== click on " + key);
 
     var settings = window.navigator.mozSettings;
     if (!key || !settings)
@@ -105,11 +106,13 @@ var WifiManager = navigator.mozWifiManager;
 WifiManager.ondisabled = function() {
     var a = 1;
     var b =2;
- }; 
+    dump("==== wifi disabled");
+}; 
   
-WifiManager.ondisabled = function() {
+WifiManager.onenabled = function() {
     var a = 1;
     var b =2;
+    dump("==== wifi enabled");
 };
 // apply user changes to 'Settings' + panel navigation
 window.addEventListener('load', function loadSettings() {
