@@ -507,6 +507,7 @@ onLocalized(function bluetoothSettings() {
     }
 
     function onRequestPairing(evt, method) {
+      dump("==== pair address "+ evt.address);
       var device = {
         address: evt.address,
         name: evt.name || _('unnamed-device'),
@@ -522,9 +523,9 @@ onLocalized(function bluetoothSettings() {
       var host = window.location.host;
       childWindow = window.open(protocol + '//' + host + '/onpair.html',
                   'pair_screen', 'attention');
-      childWindow.onload = function() {
+      childWindow.addEventListener('DOMContentLoaded', function() {
         childWindow.PairView.setUp(pairingMode, method, device, passkey);
-      };
+      });
     }
 
     function startDiscovery() {

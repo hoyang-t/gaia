@@ -36,6 +36,7 @@ var PairView = {
   passkeyInput: document.getElementById('passkey-input'),
 
   init: function pv_init() {
+    dump("==== pair init");
     var _ = navigator.mozL10n.get;
     this.pairButton.addEventListener('click', this);
     this.closeButton.addEventListener('click', this);
@@ -73,6 +74,7 @@ var PairView = {
   },
 
   setUp: function pv_setDeviceInfo(mode, method, device, passkey) {
+    dump("==== bluetooth device " + JSON.stringify(device));
     this._pairMode = mode;
     this._pairMethod = method;
     this._device = device;
