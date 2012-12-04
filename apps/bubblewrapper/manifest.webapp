@@ -1,0 +1,23 @@
+{
+  "name": "Bubble Wrapper",
+  "description": "Bubble Wrapper Game",
+  "launch_path": "/index.html",
+  "developer": {
+    "name": "The Gaia Team",
+    "url": "https://github.com/mozilla-b2g/gaia"
+  },
+  "locales": {
+    "en-US": {
+      "name": "Template",
+      "description": "Web app template"
+    },
+    "zh-TW": {
+      "name": "Template",
+      "description": "Web app template"
+    }
+  },
+  "default_locale": "en-US",
+  "icons": {
+    "128": "/style/icons/bubble.gif"
+  }
+}
