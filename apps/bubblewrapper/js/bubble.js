@@ -17,15 +17,36 @@ const CLICK_SOUND = 'data:audio/x-wav;base64,' +
   'B4kD3QKPBcAHhgaHBDAEngO6BBcFbwJ2/qD7rPtG/voBwQGU/pn9Lv3T/g==';
 
 var BubbleWrapper = {
-  ROW: 7,
-  COL: 5,
-  SIZE: 50,
-  margin: 0,
+  /* Constant */
+  ROW: 7,      // default rows
+  COL: 5,      // default columns
+  SIZE: 50,    // bubble size, 50x50 px
+  SEAM: 5,     // 5px seam between bubbles
+  N_STYLE: 4,  // number of broken bubble style
+
   panel: document.getElementById('panel'),
+  timerInfo: document.getElementById('timer'),
+  counterInfo: document.getElementById('counter'),
+  sound: null,
+  timer: 0,
+  counter: 0,
 
   init: function() {
+    this.ROW = Math.floor(window.innerHeight / (this.SIZE + this.SEAM));
+    this.COL = Math.floor(window.innerWidth / (this.SIZE + this.SEAM));
     for(var i=0; i<this.ROW; ++i) {
       this.makeOneRow(i);
+    }
+    this.sound = new Audio(CLICK_SOUND);
+    setInterval(this.showTimer.bind(this), 1000);
+
+    var self = this;
+    document.onscroll = function() {
+      if(!document.body.scrollBottom) {
+        self.makeOneRow(self.ROW);
+        self.ROW++;
+        console.log(self.ROW);
+      }
     }
   },
 
@@ -36,9 +57,9 @@ var BubbleWrapper = {
       aRow.classList.add('shift');
     for(var i = 0; i < this.COL; ++i) {
       var aCol = document.createElement('span');
+      aCol.classList.add('col');
       aCol.classList.add('bubble');
-      aCol.onclick = this.brokenClick;
-
+      aCol.onclick = this.brokenClick.bind(this);
       aRow.appendChild(aCol);
     }
 
@@ -49,10 +70,27 @@ var BubbleWrapper = {
   brokenClick: function(evt) {
     var aCol = evt.target;
     aCol.onclick = null;
-    var clicker = new Audio(CLICK_SOUND);
-    clicker.play();
-    var brokenNumber = Math.round(Math.random() * 3 + 1);
-    aCol.className = 'bubble-broken-' + brokenNumber;
+    this.counter++;
+    this.counterInfo.textContent = this.counter;
+    var brokenNumber = Math.round(Math.random() * (this.N_STYLE - 1) + 1);
+    aCol.classList.add('bubble-broken-' + brokenNumber);
+    aCol.classList.remove('bubble');
+    this.sound.cloneNode(false).play();
+    if ('vibrate' in navigator)
+      navigator.vibrate([50]);
+  },
+
+  showTimer: function() {
+    this.timer++;
+    var time = [];
+    time[0] = this.leadingZero(Math.floor(this.timer/3600));
+    time[1] = this.leadingZero(Math.floor(this.timer/60));
+    time[2] = this.leadingZero(this.timer%60);
+    this.timerInfo.textContent = time.join(':');
+  },
+
+  leadingZero: function(num) {
+    return (num < 10)? '0' + num : num.toString();
   }
 
 };
