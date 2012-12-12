@@ -7,75 +7,22 @@
     <meta name="viewport" content="initial-scale=1.0">
     <title>Bubble Wrapper</title>
 
+    <link rel="stylesheet" type="text/css" href="style/bubble.css"/>
     <script type="application/javascript" defer src="js/bubble.js"></script>
-    <style>
-      body {
-//        overflow: hidden;
-      }
-      .bg {
-        background: transparent url('./style/icons/bg.png') repeat;
-      }
-      .bubble {
-        background: transparent url('./style/icons/bubble.gif') no-repeat;
-        background-size: 50px 50px;
-      }
-      .bubble-broken-1 {
-        background: transparent url('./style/icons/bubble_broken_1.gif') no-repeat;
-        background-size: 50px 50px;
-      }
-      .bubble-broken-2 {
-        background: transparent url('./style/icons/bubble_broken_2.gif') no-repeat;
-        background-size: 50px 50px;
-      }
-      .bubble-broken-3 {
-        background: transparent url('./style/icons/bubble_broken_3.gif') no-repeat;
-        background-size: 50px 50px;
-      }
-      .bubble-broken-4 {
-        background: transparent url('./style/icons/bubble_broken_4.gif') no-repeat;
-        background-size: 50px 50px;
-      }
-      .col {
-        width: 50px;
-        height: 50px;
-        display: inline-block;
-        margin-right: 5px;
-      }
-      .row {
-//        width: 280px;
-      }
-      .shift {
-        margin-left: 25px;
-      }
-      .clearfix:after {
-        content: ".";
-        display: block;
-        clear: both;
-        visibility: hidden;
-        line-height: 0;
-        height: 0;
-      }
-      .clearfix {
-        display: inline-block;
-      }
-      #info #timer {
-        float: left;
-        left: 0;
-      }
-      #info #counter {
-        float: right;
-        right: 0;
-      }
-    </style>
-
-    <script>
-    </script>
   </head>
 
   <body class="bg">
-    <div id="info" class="clearfix">
-      <div id="timer">00:00:00</div>
-      <div id="counter">0</div>
+    <div id="info_container">
+      <div id="info" class="shadow">
+        <div class="front face">time escaped: 
+          <span id="timer" class="highlight">00:00:00</span>
+          <button class="reset">reset</button>
+        </div>
+        <div class="back face">bubble broken: 
+          <span id="counter" class="highlight">0</span>
+          <button class="reset">reset</button>
+        </div>
+      </div>
     </div>
     <div id="panel">
     </div>

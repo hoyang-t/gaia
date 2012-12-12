@@ -24,6 +24,7 @@ var BubbleWrapper = {
   SEAM: 5,     // 5px seam between bubbles
   N_STYLE: 4,  // number of broken bubble style
 
+  info: document.getElementById('info'),
   panel: document.getElementById('panel'),
   timerInfo: document.getElementById('timer'),
   counterInfo: document.getElementById('counter'),
@@ -47,6 +48,14 @@ var BubbleWrapper = {
         self.ROW++;
         console.log(self.ROW);
       }
+    }
+    var flag = true;
+    this.info.onclick = function() {
+      if (flag)
+        this.classList.add('rotate');
+      else
+        this.classList.remove('rotate');
+      flag = !flag;
     }
   },
 
