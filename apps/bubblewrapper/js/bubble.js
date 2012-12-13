@@ -22,41 +22,67 @@ var BubbleWrapper = {
   COL: 5,      // default columns
   SIZE: 50,    // bubble size, 50x50 px
   SEAM: 5,     // 5px seam between bubbles
-  N_STYLE: 4,  // number of broken bubble style
+  N_STYLE: 5,  // number of broken bubble style
 
   info: document.getElementById('info'),
   panel: document.getElementById('panel'),
   timerInfo: document.getElementById('timer'),
   counterInfo: document.getElementById('counter'),
+  timerResetBtn: document.getElementById('reset-timer'),
+  counterResetBtn: document.getElementById('reset-counter'),
   sound: null,
   timer: 0,
   counter: 0,
+  timerInterval: null,
 
-  init: function() {
-    this.ROW = Math.floor(window.innerHeight / (this.SIZE + this.SEAM));
+  initBubbles: function() {
+    this.ROW = Math.floor(window.innerHeight / (this.SIZE + this.SEAM)) - 1;
     this.COL = Math.floor(window.innerWidth / (this.SIZE + this.SEAM));
     for(var i=0; i<this.ROW; ++i) {
       this.makeOneRow(i);
     }
+  },
+
+  init: function() {
+    this.initBubbles();
+
     this.sound = new Audio(CLICK_SOUND);
-    setInterval(this.showTimer.bind(this), 1000);
+    this.timerInterval = setInterval(this.showTimer.bind(this), 1000);
+    setTimeout(this.turnOver.bind(this), 10000);
+    setTimeout(this.turnOver.bind(this), 20000);
+
+    this.info.onclick = this.turnOver.bind(this);
 
     var self = this;
-    document.onscroll = function() {
-      if(!document.body.scrollBottom) {
-        self.makeOneRow(self.ROW);
-        self.ROW++;
-        console.log(self.ROW);
+    this.timerResetBtn.onclick = function(e) {
+      e.stopPropagation();
+      self.timer = -1;
+    };
+    this.counterResetBtn.onclick = function(e) {
+      e.stopPropagation();
+      self.counter = 0;
+      self.counterInfo.textContent = self.counter;
+      self.resetPanel();
+      self.initBubbles();
+    };
+
+    document.addEventListener('mozvisibilitychange', function() {
+      if (document.mozHidden) {
+        clearInterval(self.timerInterval);
+        self.timerInterval = null;
+      } else {
+        self.timerInterval = setInterval(self.showTimer.bind(self), 1000);
       }
-    }
-    var flag = true;
-    this.info.onclick = function() {
-      if (flag)
-        this.classList.add('rotate');
-      else
-        this.classList.remove('rotate');
-      flag = !flag;
-    }
+    });
+
+  },
+
+  turnOver: function(evt) {
+    this.info.classList.toggle('rotate');
+  },
+
+  resetPanel: function () {
+    this.panel.innerHTML = '';
   },
 
   makeOneRow: function(rId) {
@@ -65,7 +91,7 @@ var BubbleWrapper = {
     if (rId%2)
       aRow.classList.add('shift');
     for(var i = 0; i < this.COL; ++i) {
-      var aCol = document.createElement('span');
+      var aCol = document.createElement('div');
       aCol.classList.add('col');
       aCol.classList.add('bubble');
       aCol.onclick = this.brokenClick.bind(this);
@@ -81,12 +107,19 @@ var BubbleWrapper = {
     aCol.onclick = null;
     this.counter++;
     this.counterInfo.textContent = this.counter;
-    var brokenNumber = Math.round(Math.random() * (this.N_STYLE - 1) + 1);
+    var brokenNumber = Math.floor((Math.random() * 100) % this.N_STYLE);
+    console.log(brokenNumber);
     aCol.classList.add('bubble-broken-' + brokenNumber);
     aCol.classList.remove('bubble');
     this.sound.cloneNode(false).play();
     if ('vibrate' in navigator)
       navigator.vibrate([50]);
+
+    if ((this.ROW * this.COL) === this.counter) {
+      this.makeOneRow(this.ROW);
+      this.ROW++;
+      document.documentElement.scrollTop += this.SIZE + 10;
+    }
   },
 
   showTimer: function() {

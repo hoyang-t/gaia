@@ -14,15 +14,24 @@
   <body class="bg">
     <div id="info_container">
       <div id="info" class="shadow">
-        <div class="front face">time escaped: 
+        <div class="front face">
+          <img src="style/icons/hourglass.png"/>
           <span id="timer" class="highlight">00:00:00</span>
-          <button class="reset">reset</button>
+          <button class="reset" id="reset-timer">reset</button>
         </div>
-        <div class="back face">bubble broken: 
+        <div class="back face">
+          <img src="style/icons/bubble_broken.png"/>
           <span id="counter" class="highlight">0</span>
-          <button class="reset">reset</button>
+          <button class="reset" id="reset-counter">reset</button>
         </div>
       </div>
+    </div>
+    <div class="row">
+      <div class="col bubble-broken-0"></div>
+      <div class="col bubble-broken-1"></div>
+      <div class="col bubble-broken-2"></div>
+      <div class="col bubble-broken-3"></div>
+      <div class="col bubble-broken-4"></div>
     </div>
     <div id="panel">
     </div>
