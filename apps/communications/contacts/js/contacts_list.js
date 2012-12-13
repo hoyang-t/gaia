@@ -12,6 +12,7 @@ contacts.List = (function() {
       scrollable,
       settingsView,
       noContacts,
+      imgLoader,
       orderByLastName = null,
       emptyList = true;
 
@@ -40,9 +41,11 @@ contacts.List = (function() {
     FixedHeader.init('#groups-container', '#fixed-container', selector);
 
     initAlphaScroll();
-    ImageLoader.init('#groups-container', 'li');
+    imgLoader = new ImageLoader('#groups-container', 'li');
 
-    contacts.Search.init(conctactsListView, favoriteGroup);
+    contacts.Search.init(conctactsListView, favoriteGroup, function(e) {
+      onClickHandler(e);
+    });
   }
 
   var initAlphaScroll = function initAlphaScroll() {
@@ -105,7 +108,7 @@ contacts.List = (function() {
     contact.org = contact.org || '';
     var contactContainer = document.createElement('li');
     contactContainer.className = 'contact-item';
-    contactContainer.dataset.uuid = contact.id;
+    contactContainer.dataset.uuid = utils.text.escapeHTML(contact.id, true);
     var timestampDate = contact.updated || contact.published || new Date();
     contactContainer.dataset.updated = timestampDate.getTime();
     var link = document.createElement('a');
@@ -116,7 +119,11 @@ contacts.List = (function() {
       var figure = document.createElement('aside');
       figure.className = 'pack-end';
       var img = document.createElement('img');
-      img.dataset.src = window.URL.createObjectURL(contact.photo[0]);
+      try {
+        img.dataset.src = window.URL.createObjectURL(contact.photo[0]);
+      } catch(err) {
+        img.dataset.src = '';
+      }
       figure.appendChild(img);
       link.appendChild(figure);
     }
@@ -134,7 +141,8 @@ contacts.List = (function() {
         }
       }
     });
-    name.dataset['search'] = normalizeText(searchInfo.join(' '));
+    var escapedValue = utils.text.escapeHTML(searchInfo.join(' '), true);
+    name.dataset['search'] = utils.text.normalize(escapedValue);
 
     // Label the contact concerning social networks
     var meta = document.createElement('p');
@@ -151,7 +159,7 @@ contacts.List = (function() {
       }
     }
     //Add organization name
-    meta.innerHTML += contact.org;
+    meta.innerHTML += utils.text.escapeHTML(contact.org, true);
 
     //Final item structure
     link.appendChild(name);
@@ -162,10 +170,12 @@ contacts.List = (function() {
   }
 
   var getHighlightedName = function getHighlightedName(contact) {
+    var givenName = utils.text.escapeHTML(contact.givenName);
+    var familyName = utils.text.escapeHTML(contact.familyName);
     if (orderByLastName) {
-      return contact.givenName + ' <strong>' + contact.familyName + '</strong>';
+      return givenName + ' <strong>' + familyName + '</strong>';
     } else {
-      return '<strong>' + contact.givenName + '</strong> ' + contact.familyName;
+      return '<strong>' + givenName + '</strong> ' + familyName;
     }
   };
 
@@ -225,7 +235,7 @@ contacts.List = (function() {
         renderFavorites(favorites);
         cleanLastElements(counter);
         FixedHeader.refresh();
-        ImageLoader.reload();
+        imgLoader.reload();
         Contacts.hideOverlay();
         emptyList = false;
         return;
@@ -241,7 +251,7 @@ contacts.List = (function() {
       }
 
       window.setTimeout(function() {
-        ImageLoader.reload();
+        imgLoader.reload();
         renderChunks(index + 1);
       }, 0);
     }
@@ -476,7 +486,7 @@ contacts.List = (function() {
     }
     toggleNoContactsScreen(false);
     FixedHeader.refresh();
-    ImageLoader.reload();
+    imgLoader.reload();
   }
 
   // Fills the contact data to display if no givenName and familyName
@@ -575,7 +585,7 @@ contacts.List = (function() {
 
   var getGroupName = function getGroupName(contact) {
     var ret = getStringToBeOrdered(contact);
-    ret = normalizeText(ret.charAt(0).toUpperCase());
+    ret = utils.text.normalize(ret.charAt(0).toUpperCase());
 
     var code = ret.charCodeAt(0);
     if (code < 65 || code > 90) {
@@ -605,10 +615,14 @@ contacts.List = (function() {
   }
 
   function onClickHandler(evt) {
-    var dataset = evt.target.parentNode.dataset;
-    if (dataset && 'uuid' in dataset) {
+    var target = evt.target;
+    var dataset = target.dataset || {};
+    var parentDataset = target.parentNode ?
+                          (target.parentNode.dataset || {}) : {};
+    var uuid = dataset.uuid || parentDataset.uuid;
+    if (uuid) {
       callbacks.forEach(function(callback) {
-        callback(dataset.uuid);
+        callback(uuid);
       });
     }
     evt.preventDefault();

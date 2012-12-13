@@ -9,7 +9,8 @@
   },
   "permissions": {
     "device-storage:videos":{ "access": "readwrite" },
-    "deprecated-hwvideo":{}
+    "deprecated-hwvideo":{},
+    "audio-channel-content":{}
   },
   "locales": {
     "ar": {

@@ -88,10 +88,10 @@ fb.setFriendPictureUrl = function(devContact, url) {
 // Adapts data to the mozContact format names
 fb.friend2mozContact = function(f) {
 // givenName is put as name but it should be f.first_name
-  f.familyName = [f.last_name ? f.last_name.trim() : f.last_name];
-  var middleName = f.middle_name ? f.middle_name.trim() : f.middle_name;
+  f.familyName = [f.last_name ? f.last_name.trim() : (f.last_name || '')];
+  var middleName = f.middle_name ? f.middle_name.trim() : (f.middle_name || '');
   f.additionalName = middleName;
-  var firstName = f.first_name ? f.first_name.trim() : f.first_name;
+  var firstName = f.first_name ? f.first_name.trim() : (f.first_name || '');
   f.givenName = [(firstName + ' ' + middleName).trim()];
 
   delete f.last_name;
@@ -208,4 +208,84 @@ fb.getAddress = function(fbdata) {
   }
 
   return out;
+};
+
+// Merge done specifically for dialer and Call Log apps
+fb.mergeContact = function(devContact, fbContact) {
+  var fbPhotos = fbContact.photo;
+  if (!devContact.photo && Array.isArray(fbPhotos)) {
+    devContact.photo = [];
+  }
+
+  if (Array.isArray(fbPhotos) && fbPhotos.length > 0 && fbPhotos[0]) {
+    devContact.photo.push(fbPhotos[0]);
+  }
+
+  if (!devContact.tel && Array.isArray(fbContact.tel)) {
+    devContact.tel = [];
+  }
+
+  if (Array.isArray(fbContact.tel)) {
+    fbContact.tel.forEach(function(atel) {
+      devContact.tel.push(atel);
+    });
+  }
+
+  return devContact;
+};
+
+fb.getContactByNumber = function(number, onsuccess, onerror) {
+  var req = fb.contacts.getByPhone(number);
+
+  req.onsuccess = function(e) {
+    onsuccess(e.target.result);
+  };
+
+  req.onerror = onerror;
+};
+
+// Only will be executed in the case of not loading fb.utils previously
+// i.e. dialer and call log FB integration
+var fb = window.fb || {};
+fb.utils = window.fb.utils || {};
+
+// Returns the mozContact associated to a UID in FB
+fb.utils.getMozContactByUid = function(uid, onsuccess, onerror) {
+  var filter = {
+    filterBy: ['category'],
+    filterValue: uid,
+    filterOp: 'contains'
+  };
+
+  var req = navigator.mozContacts.find(filter);
+  req.onsuccess = onsuccess;
+  req.onerror = onerror;
+};
+
+ /**
+  *   Request auxiliary object to support asynchronous calls
+  *
+  */
+fb.utils.Request = function() {
+  this.done = function(result) {
+    this.result = result;
+    if (typeof this.onsuccess === 'function') {
+      var ev = {};
+      ev.target = this;
+      window.setTimeout(function() {
+        this.onsuccess(ev);
+      }.bind(this), 0);
+    }
+  }
+
+  this.failed = function(error) {
+    this.error = error;
+    if (typeof this.onerror === 'function') {
+      var ev = {};
+      ev.target = this;
+      window.setTimeout(function() {
+        this.onerror(ev);
+      }.bind(this), 0);
+    }
+  }
 };

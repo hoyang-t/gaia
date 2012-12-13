@@ -62,8 +62,9 @@ var MessageManager = {
             var contactButton = document.getElementById('icon-contact');
             contactButton.parentNode.appendChild(contactButton);
             document.getElementById('messages-container').innerHTML = '';
-            messageInput.innerHTML = '';
+            messageInput.value = '';
             receiverInput.value = '';
+            ThreadUI.sendButton.disabled = true;
             threadMessages.classList.add('new');
             MessageManager.slide(function() {
               receiverInput.focus();
@@ -101,6 +102,7 @@ var MessageManager = {
             var num = this.getNumFromHash();
             if (num) {
               var filter = this.createFilter(num);
+              var messageInput = document.getElementById('message-to-send');
               MessageManager.currentNum = num;
               if (mainWrapper.classList.contains('edit')) {
                 this.getMessages(ThreadUI.renderMessages, filter);
@@ -108,11 +110,12 @@ var MessageManager = {
               } else if (threadMessages.classList.contains('new')) {
                 this.getMessages(ThreadUI.renderMessages, filter);
                 threadMessages.classList.remove('new');
+                messageInput.focus();
               } else {
                 this.getMessages(ThreadUI.renderMessages,
                   filter, null, function() {
                     MessageManager.slide(function() {
-                      document.getElementById('message-to-send').focus();
+                      messageInput.focus();
                     });
                   });
               }
@@ -250,16 +253,6 @@ var MessageManager = {
         MessageManager.markMessageRead(list[i], value, callback);
       } else {
         MessageManager.markMessageRead(list[i], value);
-      }
-    }
-  },
-
-  reopenSelf: function reopenSelf(number) {
-    navigator.mozApps.getSelf().onsuccess = function getSelfCB(evt) {
-      var app = evt.target.result;
-      app.launch();
-      if (number) {
-        window.location.hash = '#num=' + number;
       }
     }
   }
@@ -713,7 +706,9 @@ var ThreadUI = {
       this.deselectAllMessages.bind(this));
     this.cancelButton.addEventListener('click', this.cancelEditMode.bind(this));
     this.input.addEventListener('input', this.updateInputHeight.bind(this));
+    this.input.addEventListener('input', this.enableSend.bind(this));
     this.contactInput.addEventListener('input', this.searchContact.bind(this));
+    this.contactInput.addEventListener('input', this.enableSend.bind(this));
     this.deleteButton.addEventListener('click',
                                        this.executeDeletion.bind(this));
     this.title.addEventListener('click', this.activateContact.bind(this));
@@ -722,6 +717,15 @@ var ThreadUI = {
     this.editForm.addEventListener('submit', this);
     this.telForm.addEventListener('submit', this);
     this.sendForm.addEventListener('submit', this);
+  },
+
+  enableSend: function thui_enableSend() {
+    if (window.location.hash == '#new' && this.contactInput.value.length == 0) {
+      this.sendButton.disabled = true;
+      return;
+    }
+
+    this.sendButton.disabled = !(this.input.value.length > 0);
   },
 
   scrollViewToBottom: function thui_scrollViewToBottom(animateFromPos) {
@@ -839,6 +843,8 @@ var ThreadUI = {
   },
 
   renderMessages: function thui_renderMessages(messages, callback) {
+    // Clean form
+    ThreadUI.cleanForm();
     // Update Header
     ThreadUI.updateHeaderData(MessageManager.currentNum);
     // Sorting messages reverse
@@ -953,7 +959,8 @@ var ThreadUI = {
   },
 
   cleanForm: function thui_cleanForm() {
-    this.input.innerHTML = '';
+    this.sendButton.disabled = true;
+    this.input.value = '';
     var inputs = this.view.querySelectorAll('input[type="checkbox"]');
     for (var i = 0; i < inputs.length; i++) {
       inputs[i].checked = false;
@@ -963,6 +970,9 @@ var ThreadUI = {
     this.selectedInputList = [];
     this.pageHeader.innerHTML = _('editMode');
     this.checkInputs();
+
+    // Unlock sendMessage function.
+    ThreadUI.sendingMessage = false;
   },
 
   clearContact: function thui_clearContact() {
@@ -974,7 +984,6 @@ var ThreadUI = {
     var inputs =
             this.view.querySelectorAll('input[type="checkbox"]:not(:checked)');
     for (var i = 0; i < inputs.length; i++) {
-      inputs[i].checked = true;
       ThreadUI.clickInput(inputs[i]);
     }
     ThreadUI.checkInputs();
@@ -984,7 +993,6 @@ var ThreadUI = {
     var inputs =
             this.view.querySelectorAll('input[type="checkbox"]:checked');
     for (var i = 0; i < inputs.length; i++) {
-      inputs[i].checked = false;
       ThreadUI.clickInput(inputs[i]);
     }
     ThreadUI.checkInputs();
@@ -1087,14 +1095,16 @@ var ThreadUI = {
 
   clickInput: function thui_clickInput(target) {
     if (target.checked) {
-      ThreadUI.selectedInputList.push(target);
-      // Adding red bubble
-      target.parentNode.parentNode.classList.add('selected');
-    } else {
+      target.checked = false;
       ThreadUI.selectedInputList.splice(
                       ThreadUI.selectedInputList.indexOf(target), 1);
       // Removing red bubble
       target.parentNode.parentNode.classList.remove('selected');
+    } else {
+      target.checked = true;
+      ThreadUI.selectedInputList.push(target);
+      // Adding red bubble
+      target.parentNode.parentNode.classList.add('selected');
     }
   },
 
@@ -1120,9 +1130,13 @@ var ThreadUI = {
   handleEvent: function thui_handleEvent(evt) {
     switch (evt.type) {
       case 'click':
-        if (evt.target.type == 'checkbox') {
-          ThreadUI.clickInput(evt.target);
-          ThreadUI.checkInputs();
+        if (window.location.hash != '#edit') {
+          return;
+        }
+        var inputs = evt.target.parentNode.getElementsByTagName('input');
+        if (inputs && inputs.length > 0) {
+            ThreadUI.clickInput(inputs[0]);
+            ThreadUI.checkInputs();
         }
         break;
       case 'submit':
@@ -1139,10 +1153,37 @@ var ThreadUI = {
   },
 
   sendMessage: function thui_sendMessage(resendText) {
+    // First of all check if we can send a SMS
+    // Retrieve num depending on hash
+    var hash = window.location.hash;
+    // Depending where we are, we get different num
+    if (hash == '#new') {
+      var num = this.contactInput.value;
+      if (!num || num == '') {
+        return;
+      }
+    } else {
+      var num = MessageManager.getNumFromHash();
+    }
+
+    // Retrieve text
+    var text = this.input.value;
+    if (!text || text == '') {
+      return;
+    }
+
     var settings = window.navigator.mozSettings,
         throwGeneralError;
+    // Lock sendMessage in order to ensure sending the message only once
+    if (this.sendingMessage)
+      return;
+    this.sendingMessage = true;
+    function unlock() {
+      ThreadUI.sendingMessage = false;
+    }
 
     throwGeneralError = function() {
+      unlock();
       CustomDialog.show(
         _('sendGeneralErrorTitle'),
         _('sendGeneralErrorBody'),
@@ -1155,24 +1196,20 @@ var ThreadUI = {
       );
     };
 
+    var sent = false;
+
     if (settings) {
 
       var req = settings.createLock().get('ril.radio.disabled');
       req.addEventListener('success', (function onsuccess() {
         var status = req.result['ril.radio.disabled'];
 
-        // Retrieve num depending on hash
-        var hash = window.location.hash;
-        // Depending where we are, we get different num
-        if (hash == '#new') {
-          var num = this.contactInput.value;
-        } else {
-          var num = MessageManager.getNumFromHash();
-        }
         var numNormalized =
           PhoneNumberManager.getNormalizedInternationalNumber(num);
-        // Retrieve text
-        var text = this.input.value || resendText;
+        // Ensure that resendText isn't a MouseEvent
+        if (typeof(resendText) == 'string')
+          text = resendText;
+
         // If we have something to send
         if (numNormalized != '' && text != '') {
           // Create 'PendingMessage'
@@ -1191,6 +1228,7 @@ var ThreadUI = {
             // Save the message into pendind DB before send.
             PendingMsgManager.saveToMsgDB(message, function onsave(msg) {
               ThreadUI.cleanFields();
+              unlock();
               if (window.location.hash == '#new') {
                 window.location.hash = '#num=' + num;
               } else {
@@ -1202,6 +1240,13 @@ var ThreadUI = {
                 });
               }
               MessageManager.getMessages(ThreadListUI.renderThreads);
+
+              // Safety check in order to ensure that we try to send the
+              // message only once
+              if (sent)
+                return;
+              sent = true;
+
               // XXX Once we have PhoneNumberJS in Gecko we will
               // use num directly:
               // https://bugzilla.mozilla.org/show_bug.cgi?id=809213
@@ -1248,6 +1293,7 @@ var ThreadUI = {
             // Save the message into pendind DB before send.
             PendingMsgManager.saveToMsgDB(message, function onsave(msg) {
               ThreadUI.cleanFields();
+              unlock();
               if (window.location.hash == '#new') {
                 window.location.hash = '#num=' + num;
               } else {
@@ -1270,6 +1316,8 @@ var ThreadUI = {
               MessageManager.getMessages(ThreadListUI.renderThreads);
             });
           }
+        } else {
+          unlock();
         }
       }).bind(this));
 
@@ -1378,12 +1426,10 @@ var ThreadUI = {
       });
       activity.onsuccess = function success() {
         var number = this.result.number;
-        MessageManager.reopenSelf(number);
+        if (number) {
+          window.location.hash = '#num=' + number;
+        }
       }
-      activity.onerror = function error() {
-        MessageManager.reopenSelf();
-      }
-
     } catch (e) {
       console.log('WebActivities unavailable? : ' + e);
     }
@@ -1414,12 +1460,6 @@ var ThreadUI = {
 
     try {
       var activity = new MozActivity(options);
-      activity.onsuccess = function success() {
-        MessageManager.reopenSelf();
-      }
-      activity.onerror = function error() {
-        MessageManager.reopenSelf();
-      }
     } catch (e) {
       console.log('WebActivities unavailable? : ' + e);
     }
@@ -1526,13 +1566,41 @@ window.navigator.mozSetMessageHandler('activity', function actHandle(activity) {
 
 // We want to register the handler only when we're on the launch path
 if (!window.location.hash.length) {
-  window.navigator.mozSetMessageHandler('sms-received', function smsReceived(message) {
+  window.navigator.mozSetMessageHandler('sms-received',
+    function smsReceived(message) {
     // The black list includes numbers for which notifications should not
     // progress to the user. Se blackllist.js for more information.
+    var number = message.sender;
+    // Class 0 handler:
+    if (message.messageClass == 'class-0') {
+      // XXX: Hack hiding the message class in the icon URL
+      // Should use the tag element of the notification once the final spec
+      // lands:
+      // See: https://bugzilla.mozilla.org/show_bug.cgi?id=782211
+      navigator.mozApps.getSelf().onsuccess = function(evt) {
+        var app = evt.target.result;
+        var iconURL = NotificationHelper.getIconURI(app);
+
+        // XXX: Add params to Icon URL.
+        iconURL += '?class0';
+        var messageBody = number + '\n' + message.body;
+        var showMessage = function() {
+          app.launch();
+          alert(messageBody);
+        };
+
+        // We have to remove the SMS due to it does not have to be shown.
+        MessageManager.deleteMessage(message.id, function() {
+          // Once we remove the sms from DB we launch the notification
+          NotificationHelper.send(message.sender, message.body,
+                                    iconURL, showMessage);
+        });
+
+      };
+      return;
+    }
     if (BlackList.has(message.sender))
       return;
-
-    var number = message.sender;
 
     // The SMS app is already displayed
     if (!document.mozHidden) {
@@ -1551,7 +1619,7 @@ if (!window.location.hash.length) {
 
         // Stashing the number at the end of the icon URL to make sure
         // we get it back even via system message
-        iconURL += '?' + number;
+        iconURL += '?sms-received?' + number;
 
         var goToMessage = function() {
           app.launch();
@@ -1573,14 +1641,24 @@ if (!window.location.hash.length) {
     });
   });
 
-  window.navigator.mozSetMessageHandler('notification', function notificationClick(message) {
+  window.navigator.mozSetMessageHandler('notification',
+    function notificationClick(message) {
     navigator.mozApps.getSelf().onsuccess = function(evt) {
       var app = evt.target.result;
       app.launch();
 
       // Getting back the number form the icon URL
-      var number = message.imageURL.split('?')[1];
-      showThreadFromSystemMessage(number)
+      var notificationType = message.imageURL.split('?')[1];
+      // Case regular 'sms-received'
+      if (notificationType == 'sms-received') {
+        var number = message.imageURL.split('?')[2];
+        showThreadFromSystemMessage(number);
+        return;
+      }
+      var number = message.title;
+      // Class 0 message
+      var messageBody = number + '\n' + message.body;
+      alert(messageBody);
     }
   });
 }

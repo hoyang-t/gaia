@@ -10,7 +10,8 @@
   "permissions": {
     "alarms":{},
     "settings":{ "access": "readwrite" },
-    "attention":{}
+    "attention":{},
+    "audio-channel-alarm":{}
   },
   "locales": {
     "ar": {

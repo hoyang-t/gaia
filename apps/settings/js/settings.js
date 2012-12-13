@@ -32,7 +32,7 @@ var Settings = {
       var value = event.settingValue;
 
       // update <span> values when the corresponding setting is changed
-      var rule = 'span[data-name="' + key + '"]:not([data-ignore])';
+      var rule = '[data-name="' + key + '"]:not([data-ignore])';
       var spanField = document.querySelector(rule);
       if (spanField) {
         // check whether this setting comes from a select option
@@ -133,9 +133,6 @@ var Settings = {
         };
       }
     }
-
-    // display panel if required
-    panel.hidden = false;
   },
 
   presetPanel: function settings_presetPanel(panel) {
@@ -205,10 +202,11 @@ var Settings = {
       }
 
       // preset all span with data-name fields
-      rule = 'span[data-name]:not([data-ignore])';
+      rule = '[data-name]:not([data-ignore])';
       var spanFields = panel.querySelectorAll(rule);
       for (i = 0; i < spanFields.length; i++) {
         var key = spanFields[i].dataset.name;
+
         if (key && request.result[key] != undefined) {
           // check whether this setting comes from a select option
           // (it may be in a different panel, so query the whole document)
@@ -220,6 +218,23 @@ var Settings = {
             spanFields[i].textContent = option.textContent;
           } else {
             spanFields[i].textContent = request.result[key];
+          }
+        } else { // request.result[key] is undefined
+          switch (key) {
+            //XXX bug 816899 will also provide 'deviceinfo.software' from Gecko
+            //  which is {os name + os version}
+            case 'deviceinfo.software':
+              var _ = navigator.mozL10n.get;
+              var text = _('brandShortName') + ' ' +
+                request.result['deviceinfo.os'];
+              spanFields[i].textContent = text;
+              break;
+
+            //XXX workaround request from bug 808892 comment 22
+            //  hide this field if it's undefined/empty.
+            case 'deviceinfo.firmware_revision':
+              spanFields[i].parentNode.hidden = true;
+              break;
           }
         }
       }
@@ -319,6 +334,29 @@ var Settings = {
     req.open('GET', GAIA_COMMIT, true); // async
     req.responseType = 'text';
     req.send();
+  },
+
+  loadLastUpdated: function settings_loadLastUpdated() {
+    var settings = this.mozSettings;
+    if (!settings) {
+      return;
+    }
+
+    var lastUpdateDate = document.getElementById('last-update-date');
+    var lock = settings.createLock();
+    var key = 'deviceinfo.last_updated';
+    var request = lock.get(key);
+    request.onsuccess = function() {
+      var lastUpdated = request.result[key];
+      if (!lastUpdated) {
+        return;
+      }
+
+      var f = new navigator.mozL10n.DateTimeFormat();
+      var _ = navigator.mozL10n.get;
+      lastUpdateDate.textContent = f.localeFormat(new Date(lastUpdated),
+                                                  _('shortDateTimeFormat'));
+    };
   },
 
   openDialog: function settings_openDialog(dialogID) {
@@ -554,6 +592,7 @@ window.addEventListener('load', function loadSettings() {
   window.addEventListener('change', Settings);
   window.addEventListener('click', Settings); // XXX really needed?
   Settings.init();
+  handleDataConnectivity();
 
   // panel lazy-loading
   function lazyLoad(panel) {
@@ -609,6 +648,7 @@ window.addEventListener('load', function loadSettings() {
         document.getElementById('ftuLauncher').onclick =
           Settings.launchFTU.bind(Settings);
         Settings.loadGaiaCommit();
+        Settings.loadLastUpdated();
         break;
       case 'help':                // handle specific link
         Settings.getUserGuide(function userGuideCallback(url) {
@@ -637,6 +677,7 @@ window.addEventListener('load', function loadSettings() {
 
     // load panel (+ dependencies) if necessary -- this should be synchronous
     lazyLoad(newPanel);
+    newPanel.hidden = false;
 
     // switch previous/current classes -- the timeout is required to make the
     // transition smooth after lazy-loading a panel
@@ -656,6 +697,52 @@ window.addEventListener('load', function loadSettings() {
       if ((window.scrollX !== 0) || (window.scrollY !== 0)) {
         window.scrollTo(0, 0);
       }
+
+      setTimeout(function setInit() {
+        document.body.classList.remove('uninit');
+      });
+
+      // Bug 818056 - When multiple visible panels are present,
+      // they are not painted correctly. This appears to fix the issue.
+      // Only do this after the first load
+      if (oldPanel.className === 'current')
+        return;
+
+      oldPanel.addEventListener('transitionend', function onTransitionEnd() {
+        oldPanel.removeEventListener('transitionend', onTransitionEnd);
+        oldPanel.hidden = true;
+      });
+    });
+  }
+
+  function handleDataConnectivity() {
+    function updateDataConnectivity(disabled) {
+      var item = document.querySelector('#data-connectivity');
+      var link = document.querySelector('#menuItem-cellularAndData');
+      if (!item || !link)
+        return;
+
+      if (disabled) {
+        item.classList.add('carrier-disabled');
+        link.onclick = function() { return false; }
+      } else {
+        item.classList.remove('carrier-disabled');
+        link.onclick = null;
+      }
+    }
+
+    var key = 'ril.radio.disabled';
+
+    var settings = Settings.mozSettings;
+    if (!settings)
+      return;
+
+    var req = settings.createLock().get(key);
+    req.onsuccess = function() {
+      updateDataConnectivity(req.result[key]);
+    };
+    settings.addObserver(key, function(evt) {
+      updateDataConnectivity(evt.settingValue);
     });
   }
 

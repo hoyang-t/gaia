@@ -11,8 +11,10 @@
     reqApplications.onsuccess = function icc_getApplications() {
       var json = reqApplications.result['icc.applications'];
       var menu = json && JSON.parse(json);
-      if (!menu) {
+      if (!menu || (menu.items.length == 1 && menu.items[0] === null)) {
         debug('No STK available - exit');
+        document.getElementById('icc-mainheader').hidden = true;
+        document.getElementById('icc-mainentry').hidden = true;
         return;
       }
 
@@ -33,10 +35,11 @@
         if (iccCommand) {        // Open ICC section
           var page = document.location.protocol + '//' +
             document.location.host + '/index.html#icc';
-          debug("page: ", page);
+          debug('page: ', page);
           window.location.replace(page);
         }
       }
     }
   });
 })();
+
