@@ -1,0 +1,91 @@
+body {
+  //        overflow: hidden;
+}
+.bg {
+  background: transparent url('icons/bg.png') repeat;
+}
+#panel {
+  margin-top: 60px;
+}
+.bubble {
+  background: transparent url('icons/bubble.gif') no-repeat;
+  background-size: 50px 50px;
+}
+.bubble-broken-1 {
+  background: transparent url('icons/bubble_broken_1.gif') no-repeat;
+  background-size: 50px 50px;
+}
+.bubble-broken-2 {
+  background: transparent url('icons/bubble_broken_2.gif') no-repeat;
+  background-size: 50px 50px;
+}
+.bubble-broken-3 {
+  background: transparent url('icons/bubble_broken_3.gif') no-repeat;
+  background-size: 50px 50px;
+}
+.bubble-broken-4 {
+  background: transparent url('icons/bubble_broken_4.gif') no-repeat;
+  background-size: 50px 50px;
+}
+.col {
+  width: 50px;
+  height: 50px;
+  display: inline-block;
+  margin-right: 5px;
+}
+.row {
+  //        width: 280px;
+}
+.shift {
+  margin-left: 25px;
+}
+
+#info_container {
+  position: fixed;
+  width: 100%;
+  height: 50px;
+  z-index: 1;
+  top: 0;
+  right: 0;
+}
+#info_container {
+  -moz-perspective: 1000px;
+}
+#info {
+  width: 100%;
+  height: 100%;
+  -moz-transform-style: preserve-3d;
+  -moz-transition: all 1.0s linear;
+}
+.shadow {
+  box-shadow:2px 2px 2px rgba(30%,30%,20%,0.6),4px 4px 6px rgba(30%,30%,20%,0.4),6px 6px 12px rgba(30%,30%,20%,0.4);
+  margin-bottom: 10px;
+}
+.rotate {
+  -moz-transform: rotateX(180deg);
+  box-shadow:2px -2px 2px rgba(30%,30%,20%,0.6),4px -4px 6px rgba(30%,30%,20%,0.4),6px -6px 12px rgba(30%,30%,20%,0.4);
+}
+.face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -moz-backface-visibility: hidden;
+  background-color: #997;
+  text-align: left;
+  padding: 10px;
+  display: block;
+  -moz-box-sizing: border-box;
+  font-size: 26px;
+}
+.face.back {
+  -moz-transform: rotateX(180deg);
+}
+.highlight {
+  color: #933;
+}
+
+button.reset {
+  font-size: 18px;
+  right: 0;
+  text-align: right;
+}
