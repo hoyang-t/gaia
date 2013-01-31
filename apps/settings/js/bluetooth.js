@@ -240,6 +240,7 @@ navigator.mozL10n.ready(function bluetoothSettings() {
             this.connectOpt.style.display = 'block';
             this.disconnectOpt.style.display = 'none';
             this.connectOpt.onclick = function() {
+              dump("==== onclick");
               setDeviceConnect(device);
               stopDiscovery();
             };
@@ -252,12 +253,14 @@ navigator.mozL10n.ready(function bluetoothSettings() {
           setDeviceUnpair(device);
         };
         this.menu.onsubmit = function closeMenu() {
+          dump("==== submit option form");
           return self.close();
         }
         this.menu.hidden = false;
       },
 
       close: function closeMenu() {
+        dump("==== close option form");
         this.menu.hidden = true;
         return false;
       }
@@ -337,18 +340,21 @@ navigator.mozL10n.ready(function bluetoothSettings() {
 
       navigator.mozSetMessageHandler('bluetooth-cancel',
         function bt_gotCancelMessage(message) {
+          dump("==== bluetooth-cancel");
           showDevicePaired(false, null);
         }
       );
 
       navigator.mozSetMessageHandler('bluetooth-pairedstatuschanged',
         function bt_getPairedMessage(message) {
+          dump("==== bluetooth-pairedstatuschanged");
           showDevicePaired(message.paired, 'Authentication Failed');
         }
       );
 
       navigator.mozSetMessageHandler('bluetooth-hfp-status-changed',
         function bt_getConnectedMessage(message) {
+          dump("==== bluetooth-hfp-status-changed");
           showDeviceConnected(message.address, message.connected);
         }
       );
@@ -372,7 +378,9 @@ navigator.mozL10n.ready(function bluetoothSettings() {
       if (!bluetooth.enabled || !defaultAdapter)
         return;
       var req = defaultAdapter.getPairedDevices();
+      dump("==== trying to get paired devices");
       req.onsuccess = function bt_getPairedSuccess() {
+        dump("==== paired devices get!!");
         // copy for sorting
         var paired = req.result.slice();
         var length = paired.length;
@@ -447,10 +455,10 @@ navigator.mozL10n.ready(function bluetoothSettings() {
     }
 
     function showDevicePaired(paired, errorMessage) {
-      // if we are in a pairing process, update found device list
-      // or do error handling.
+      // If we are not awared in a pairing process, it means the pair
+      // is done on lower device level, simply update paired list.
+      // Acquire a new paired list no matter paired or unpaired
       if (!pairingAddress) {
-        // acquire a new paired list no matter paired or unpaired
         getPairedDevice();
         return;
       }
@@ -465,6 +473,7 @@ navigator.mozL10n.ready(function bluetoothSettings() {
           var device = openList.index[workingAddress][0];
           var item = openList.index[workingAddress][1];
           openList.list.removeChild(item);
+          delete openList.index[workingAddress];
           connectingAddress = workingAddress;
         }
       } else {
