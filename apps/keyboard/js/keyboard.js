@@ -397,32 +397,9 @@ function initKeyboard() {
     attributes: true, attributeFilter: ['class', 'style', 'data-hidden']
   });
 
-  // Show or hide the keyboard when we get an focuschange event
-  // from the keyboard
-  var focusChangeTimeout = 0;
-  navigator.mozKeyboard.onfocuschange = function onfocuschange(evt) {
-    var state = evt.detail;
-    var type = state.type;
-
-    // Skip the <select> element and inputs with type of date/time,
-    // handled in system app for now
-    if (!type || type in ignoredFormElementTypes)
-      return;
-
-    // We can get multiple focuschange events in rapid succession
-    // so wait a bit before responding to see if we get another.
-    clearTimeout(focusChangeTimeout);
-    if (type === 'blur') {
-      focusChangeTimeout = setTimeout(function switchKeyboard() {
-        hideKeyboard();
-      }, FOCUS_CHANGE_DELAY);
-    } else {
-      showKeyboard(state);
-    }
-  };
-
   // Handle resize events
   window.addEventListener('resize', onResize);
+  showKeyboard();
 }
 
 function handleKeyboardSound() {
@@ -1411,7 +1388,15 @@ function sendKey(keyCode) {
 // This is called when we get an event from mozKeyboard.
 // The state argument is the data passed with that event, and includes
 // the input field type, its inputmode, its content, and the cursor position.
-function showKeyboard(state) {
+function showKeyboard() {
+  var state = {
+    type: "text",
+    choices: null,
+    value: '',
+    inputmode: '',
+    selectionStart: 0,
+    selectionEnd: 0
+  };
   // If no keyboard has been selected yet, choose the first enabled one.
   // This will also set the inputMethod
   if (!keyboardName)
