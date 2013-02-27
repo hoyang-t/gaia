@@ -8,7 +8,7 @@
   },
   "permissions": {
     "settings":{ "access": "readwrite" },
-    "keyboard":{}
+    "keyboard": {}
   },
   "locales": {
     "en-US": {

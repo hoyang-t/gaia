@@ -1,86 +1,143 @@
 'use strict';
 
-var KeyboardManager = (function() {
-  function getKeyboardURL() {
-    // TODO: Retrieve it from Settings, allowing 3rd party keyboards
-    var host = document.location.host;
-    var domain = host.replace(/(^[\w\d]+\.)?([\w\d]+\.[a-z]+)/, '$2');
-    var protocol = document.location.protocol;
+// If we get a focuschange event from mozKeyboard for an element with
+// one of these types, we'll just ignore it.
+const ignoredFormElementTypes = {
+  'select-one': true,
+  'select-multiple': true,
+  'date': true,
+  'time': true,
+  'datetime': true,
+  'datetime-local': true
+};
 
-    return protocol + '//keyboard.' + domain + '/';
+// How long to wait for more focuschange events before processing
+const FOCUS_CHANGE_DELAY = 20;
+
+var KeyboardManager = (function() {
+  var keyboardFrameContainer = document.getElementById('keyboard-frame');
+  var keyboardFrames = [];
+  var currentKeyboard = null;
+
+  init();
+
+  function init() {
+    keyboardFrameContainer.classList.add('hide');
+    navigator.mozApps.mgmt.getAll().onsuccess = function onsuccess(event) {
+      var apps = event.target.result;
+      apps.forEach(function eachApp(app) {
+        //XXX should not hard code system app origin here
+        if (app.origin !== 'app://system.gaiamobile.org' &&
+          app.manifest.permissions && 'keyboard' in app.manifest.permissions) {
+          var keyboardAppIframe = preloadKeyboard(app.origin);
+          keyboardAppIframe.setVisible(false);
+          keyboardFrames.push(keyboardAppIframe);
+        }
+      });
+      dump("==== number of keyboard apps: " + keyboardFrames.length);
+    };
   }
 
-  function generateKeyboard(container, keyboardURL, manifestURL) {
+  function preloadKeyboard(origin) {
+    // Generate a <iframe mozbrowser> containing the keyboard.
+    var keyboardURL = origin + '/index.html';
+    var manifestURL = origin + '/manifest.webapp';
     var keyboard = document.createElement('iframe');
     keyboard.src = keyboardURL;
     keyboard.setAttribute('mozbrowser', 'true');
     keyboard.setAttribute('mozpasspointerevents', 'true');
     keyboard.setAttribute('mozapp', manifestURL);
-    //keyboard.setAttribute('remote', 'true');
+    keyboard.setAttribute('remote', 'true');
+    keyboard.addEventListener('mozbrowserlocationchange', updateWhenHashChanged);
+    keyboardFrameContainer.appendChild(keyboard);
 
-    container.appendChild(keyboard);
     return keyboard;
   }
 
-  // Generate a <iframe mozbrowser> containing the keyboard.
-  var container = document.getElementById('keyboard-frame');
-  var keyboardURL = getKeyboardURL() + 'index.html';
-  var manifestURL = getKeyboardURL() + 'manifest.webapp';
-  var keyboard = generateKeyboard(container, keyboardURL, manifestURL);
-
-  // Listen for mozbrowserlocationchange of keyboard iframe.
-  var previousHash = '';
-
-  var urlparser = document.createElement('a');
-  keyboard.addEventListener('mozbrowserlocationchange', function(e) {
+  function updateWhenHashChanged(e) {
+    var urlparser = document.createElement('a');
     urlparser.href = e.detail;
-    if (previousHash == urlparser.hash)
-      return;
-    previousHash = urlparser.hash;
 
     var type = urlparser.hash.split('=');
-    switch (type[0]) {
-      case '#show':
-        var updateHeight = function updateHeight() {
-          container.removeEventListener('transitionend', updateHeight);
-          if (container.classList.contains('hide')) {
-            // The keyboard has been closed already, let's not resize the
-            // application and ends up with half apps.
-            return;
-          }
+    if (!currentKeyboard || type[0] !== '#show')
+      return;
 
-          var detail = {
-            'detail': {
-              'height': parseInt(type[1])
-            }
-          };
+    dump("==== hash change " + type);
+    var updateHeight = function updateHeight() {
+      keyboardFrameContainer.removeEventListener('transitionend', updateHeight);
+      dump("==== keyboardFrameContainer.classList " + JSON.stringify(keyboardFrameContainer.classList));
+      if (keyboardFrameContainer.classList.contains('hide')) {
+        // The keyboard has been closed already, let's not resize the
+        // application and ends up with half apps.
+        return;
+      }
 
-          dispatchEvent(new CustomEvent('keyboardchange', detail));
+      var detail = {
+        'detail': {
+          'height': parseInt(type[1])
         }
+      };
 
-        if (container.classList.contains('hide')) {
-          container.classList.remove('hide');
-          container.addEventListener('transitionend', updateHeight);
-          return;
-        }
+      dispatchEvent(new CustomEvent('keyboardchange', detail));
+    };
 
-        updateHeight();
-        break;
-
-      case '#hide':
-        // inform window manager to resize app first or
-        // it may show the underlying homescreen
-        dispatchEvent(new CustomEvent('keyboardhide'));
-        container.classList.add('hide');
-        break;
+    if (keyboardFrameContainer.classList.contains('hide')) {
+      keyboardFrameContainer.classList.remove('hide');
+      keyboardFrameContainer.addEventListener('transitionend', updateHeight);
+      return;
     }
-  });
+    updateHeight();
+  }
 
   // For Bug 812115: hide the keyboard when the app is closed here,
   // since it would take a longer round-trip to receive focuschange
   window.addEventListener('appwillclose', function closeKeyboard() {
       dispatchEvent(new CustomEvent('keyboardhide'));
-      container.classList.add('hide');
+      keyboardFrameContainer.classList.add('hide');
   });
-})();
 
+  var focusChangeTimeout = 0;
+  navigator.mozKeyboard.onfocuschange = function onfocuschange(evt) {
+    // let value selector notice the event
+    dispatchEvent(new CustomEvent('inputfocuschange', evt));
+
+    var state = evt.detail;
+    var type = state.type;
+
+    // Skip the <select> element and inputs with type of date/time,
+    // handled in system app for now
+    if (!type || type in ignoredFormElementTypes)
+      return;
+
+    // We can get multiple focuschange events in rapid succession
+    // so wait a bit before responding to see if we get another.
+    clearTimeout(focusChangeTimeout);
+    focusChangeTimeout = setTimeout(function switchKeyboard() {
+      if (type === 'blur') {
+        hideKeyboard();
+      } else {
+        showKeyboard(state);
+      }
+    }, FOCUS_CHANGE_DELAY);
+  };
+
+  function showKeyboard(state) {
+    dump("==== get focus event: " + keyboardFrames.length);
+    if (keyboardFrames.length > 1) {
+      currentKeyboard = keyboardFrames[0];
+      currentKeyboard.setVisible(true);
+      keyboardFrameContainer.classList.remove('hide');
+    }
+  }
+
+  function hideKeyboard() {
+    dump("==== get blur event");
+    if (keyboardFrames.length > 1) {
+      dispatchEvent(new CustomEvent('keyboardhide'));
+      keyboardFrameContainer.classList.add('hide');
+      currentKeyboard.setVisible(false);
+      currentKeyboard = null;
+    }
+  }
+
+})();
