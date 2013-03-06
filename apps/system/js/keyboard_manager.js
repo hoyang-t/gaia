@@ -31,6 +31,7 @@ var KeyboardManager = (function() {
           app.manifest.permissions && 'keyboard' in app.manifest.permissions) {
           var keyboardAppIframe = preloadKeyboard(app.origin);
           keyboardAppIframe.setVisible(false);
+          keyboardAppIframe.hidden = true;
           keyboardFrames.push(keyboardAppIframe);
         }
       });
@@ -47,7 +48,7 @@ var KeyboardManager = (function() {
     keyboard.setAttribute('mozbrowser', 'true');
     keyboard.setAttribute('mozpasspointerevents', 'true');
     keyboard.setAttribute('mozapp', manifestURL);
-    keyboard.setAttribute('remote', 'true');
+    //keyboard.setAttribute('remote', 'true');
     keyboard.addEventListener('mozbrowserlocationchange', updateWhenHashChanged);
     keyboardFrameContainer.appendChild(keyboard);
 
@@ -125,6 +126,7 @@ var KeyboardManager = (function() {
     dump("==== get focus event: " + keyboardFrames.length);
     if (keyboardFrames.length > 1) {
       currentKeyboard = keyboardFrames[0];
+      currentKeyboard.hidden = false;
       currentKeyboard.setVisible(true);
       keyboardFrameContainer.classList.remove('hide');
     }
@@ -135,6 +137,7 @@ var KeyboardManager = (function() {
     if (keyboardFrames.length > 1) {
       dispatchEvent(new CustomEvent('keyboardhide'));
       keyboardFrameContainer.classList.add('hide');
+      currentKeyboard.hidden = true;
       currentKeyboard.setVisible(false);
       currentKeyboard = null;
     }
