@@ -10,6 +10,18 @@
     "settings":{ "access": "readwrite" },
     "keyboard": {}
   },
+  "entry_points": {
+    "english": {
+      "launch_path": "/index.html#en",
+      "description": "English layout",
+      "type_group": ["text", "url", "number"]
+    },
+    "spanish": {
+      "launch_path": "/index.html#es",
+      "description": "Spanish layout",
+      "type_group": ["text", "url"]
+    }
+  },
   "locales": {
     "en-US": {
       "name": "Keyboard",

@@ -159,6 +159,10 @@ var PopupManager = {
         break;
 
       case 'mozbrowseropenwindow':
+        //XXX hack for test 
+        dump("==== [popup_manager] evt.detail.url " + evt.detail.url);
+        if (detail.url.lastIndexOf('keyboard-test') > 0) 
+          return;
         var detail = evt.detail;
         var openerType = evt.target.dataset.frameType;
         var openerOrigin = evt.target.dataset.frameOrigin;
