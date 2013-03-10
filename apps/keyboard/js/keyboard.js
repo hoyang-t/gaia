@@ -200,7 +200,7 @@ const keyboardGroups = {
 
 // This is the default keyboard if none is selected in settings
 // XXX: switch this to pt-BR?
-const defaultKeyboardNames = ['en'];
+var defaultKeyboardNames = ['en'];
 
 // If we get a focuschange event from mozKeyboard for an element with
 // one of these types, we'll just ignore it.
@@ -305,7 +305,19 @@ function getKeyboardSettings() {
     enabledKeyboardGroups = {};
     for (var group in keyboardGroups) {
       var settingName = 'keyboard.layouts.' + group;
-      enabledKeyboardGroups[settingName] = values[settingName];
+      //enabledKeyboardGroups[settingName] = values[settingName];
+      enabledKeyboardGroups[settingName] = false;
+    }
+
+    // set default input method with hash value
+    if (window.location.hash !== '') {
+      console.log(enabledKeyboardGroups.toString());
+      var keyboardName = window.location.hash.substring(1);
+      for(var group in keyboardGroups) {
+        if(keyboardGroups[group].indexOf(keyboardName) !== -1) {
+          defaultKeyboardNames = [keyboardName];
+        }
+      }
     }
 
     // And create an array of all enabled keyboard layouts from the set
@@ -377,6 +389,26 @@ function initKeyboard() {
     childList: true, // to detect changes in IMEngine
     attributes: true, attributeFilter: ['class', 'style', 'data-hidden']
   });
+
+  window.addEventListener('hashchange', function() {
+    var inputMethodName = window.location.hash.substring(1);
+    setKeyboardName(inputMethodName);
+    resetKeyboard();
+    //XXX should read state from API
+    var state = {
+      type: "text",
+      choices: null,
+      value: '',
+      inputmode: '',
+      selectionStart: 0,
+      selectionEnd: 0
+    };
+
+    //XXX is it correct here?
+    if (inputMethod.activate) {
+      inputMethod.activate(userLanguage, suggestionsEnabled, state);
+    }
+  }, false);
 
   // Handle resize events
   window.addEventListener('resize', onResize);
@@ -742,11 +774,9 @@ function setLayoutPage(newpage) {
 // Inform about a change in the displayed application via mutation observer
 // http://hacks.mozilla.org/2012/05/dom-mutationobserver-reacting-to-dom-changes-without-killing-browser-performance/
 function updateTargetWindowHeight(hide) {
-  if (IMERender.ime.dataset.hidden || hide) {
-    document.location.hash = 'hide';
-  } else {
-    document.location.hash = 'show=' + IMERender.ime.scrollHeight;
-  }
+  var url = document.location.href + "#keyboard-test=" + IMERender.ime.scrollHeight;
+  dump("==== [keyboard app] height " + url);
+  window.open(url);
 }
 
 // Sends a delete code to remove last character
@@ -759,6 +789,12 @@ function sendDelete(isRepeat) {
   // of repeating events.
   inputMethod.click(KeyboardEvent.DOM_VK_BACK_SPACE,
                     undefined, undefined, isRepeat);
+  var keyword = (isRepeat) ? 'showlayoutlist' : 'switchlayout';
+  var url = document.location.href + "#keyboard-test=" + keyword;
+  dump("==== [keyboard app] switch " + url);
+  clearTimeout(deleteTimeout);
+  clearTimeout(deleteInterval);
+  window.open(url);
 }
 
 // Return the upper value for a key object
@@ -1032,15 +1068,15 @@ function startPress(target, coords, touchId) {
     sendDelete(false);
 
     // Second, after a delay (with feedback)
-    deleteTimeout = window.setTimeout(function() {
-      sendDelete(true);
+    //deleteTimeout = window.setTimeout(function() {
+    //  sendDelete(true);
 
       // Third, after shorter delay (with feedback too)
       deleteInterval = setInterval(function() {
         sendDelete(true);
       }, REPEAT_RATE);
 
-    }, REPEAT_TIMEOUT);
+    //}, REPEAT_TIMEOUT);
   }
 }
 
@@ -1350,6 +1386,7 @@ function sendKey(keyCode) {
 // The state argument is the data passed with that event, and includes
 // the input field type, its inputmode, its content, and the cursor position.
 function showKeyboard() {
+ //XXX should read state from API
   var state = {
     type: "text",
     choices: null,
