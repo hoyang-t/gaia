@@ -11,6 +11,13 @@
     "settings":{ "access": "readwrite" },
     "keyboard": {}
   },  
+  "entry_points": {
+    "english": {
+      "launch_path": "/index.html",
+      "description": "English layout",
+      "type_group": ["text", "url", "number"]
+    } 
+  },
   "locales": {
     "en-US": {
       "name": "Keyboard V2",

@@ -99,17 +99,22 @@ var KeyboardManager = (function() {
   }
 
   function launchLayoutFrame(layout) {
+    dump("==== isRunningLayout? " + layout.origin + " " + layout.name);
+    dump("====               => " + isRunningLayout(layout));
     if (isRunningLayout(layout))
       return runningLayouts[layout.origin][layout.name];
     var layoutFrame = null;
+    dump("==== isRunningKeyboard? " + isRunningKeyboard(layout));
     if (isRunningKeyboard(layout)) {
       for(var name in runningLayouts[layout.origin]) {
-        var oldPath = runningLayouts[layout.origin][name].dataset.path;
+        dump("==== (searching) name " + name + ": " + runningLayouts[layout.origin][name].dataset.framePath);
+        var oldPath = runningLayouts[layout.origin][name].dataset.framePath;
         var newPath = layout.path;
         if (oldPath.substring(0, oldPath.indexOf('#')) ===
             newPath.substring(0, newPath.indexOf('#'))) {
           layoutFrame = runningLayouts[layout.origin][name];
           layoutFrame.src = layout.origin + newPath;
+          dump("==== layoutFrame.src updated: " + layoutFrame.src);
           delete runningLayouts[layout.origin][name];
           break;
         }
@@ -119,11 +124,13 @@ var KeyboardManager = (function() {
       layoutFrame = loadKeyboardLayout(layout);
     layoutFrame.setVisible(false);
     layoutFrame.hidden = true;
-    layoutFrame.dataset.path = layout.path;
+    layoutFrame.dataset.frameName = layout.name;
+    layoutFrame.dataset.frameOrigin = layout.origin;
+    layoutFrame.dataset.framePath = layout.path;
     runningLayouts[layout.origin] = {};
     runningLayouts[layout.origin][layout.name] = layoutFrame;
     //XXX
-    //showAllLayouts();
+    showAllLayouts();
 
     return layoutFrame;
   }
@@ -164,18 +171,21 @@ var KeyboardManager = (function() {
   }
 
   function updateWhenHashChanged(evt) {
-    dump("==== evt.detail.url " + evt.detail.url);
+    dump("====  => evt.detail.url " + evt.detail.url);
     // everything is hack here! will be removed after having real platform API
     if (evt.detail.url.lastIndexOf('keyboard-test') < 0)
       return;
-
     evt.stopPropagation();
 
     if (!showedLayoutFrame)
       return;
 
+    if (!evt.detail.url.contains(showedLayoutFrame.dataset.frameOrigin))
+      return;
+
     var urlparser = document.createElement('a');
     urlparser.href = evt.detail.url;
+
     var keyword = urlparser.hash.split('=')[1];
 
     switch (keyword) {
@@ -289,7 +299,10 @@ var KeyboardManager = (function() {
   }
 
   function showKeyboard(group, index) {
-    dump("==== show keyboard " + group + " " + index);
+    //XXX hide current keyboard first because option menu won't set focus back to input field
+    //this makesa keyboard showed, but input field is not focused.
+    hideKeyboard();
+    dump("==== show keyboard: type=" + group + " index=" + index);
     showedType = group;
     showedIndex = index;
     var layout = keyboardLayouts[showedType][showedIndex];
@@ -297,6 +310,7 @@ var KeyboardManager = (function() {
     showedLayoutFrame.hidden = false;
     showedLayoutFrame.setVisible(true);
     showedLayoutFrame.addEventListener('mozbrowseropenwindow', updateWhenHashChanged);
+    dump("==== showedLayoutFrame path " + showedLayoutFrame.dataset.framePath);
 
     keyboardFrameContainer.classList.remove('hide');
   }
@@ -307,6 +321,7 @@ var KeyboardManager = (function() {
     keyboardFrameContainer.classList.add('hide');
     if (!showedLayoutFrame)
       return;
+    dump("==== (hide) showedLayoutFrame path " + showedLayoutFrame.dataset.framePath);
     showedLayoutFrame.hidden = true;
     showedLayoutFrame.setVisible(false);
     showedLayoutFrame.removeEventListener('mozbrowseropenwindow', updateWhenHashChanged);
