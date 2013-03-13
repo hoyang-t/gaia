@@ -55,6 +55,7 @@
     <script defer src="js/settings.js"></script>
 
     <!-- shared helper library -->
+    <!--<script defer src="shared/js/keyboard_helper.js"></script>-->
     <!--<script defer src="shared/js/mouse_event_shim.js"></script>-->
     <!--<script defer src="shared/js/mobile_operator.js"></script>-->
     <!--<script defer src="shared/js/async_storage.js"></script>-->
@@ -1464,19 +1465,18 @@
           <h2 data-l10n-id="textKeyboardLayouts">Text Layouts</h2>
         </header>
         <ul id="textLayoutList">
-          <li>
-            <label>
-              <input type="checkbox" name="keyboard.layouts.english" checked />
-              <span></span>
-            </label>
-            <a data-l10n-id="english">English</a>
-          </li>
         </ul>
 
         <header>
           <h2 data-l10n-id="numberKeyboardLayouts">Number Layouts</h2>
         </header>
         <ul id="numberLayoutList">
+        </ul>
+
+        <header>
+          <h2 data-l10n-id="optionKeyboardLayouts">Option Layouts</h2>
+        </header>
+        <ul id="optionLayoutList">
         </ul>
       </div>
       <script src="js/keyboard.js"></script>

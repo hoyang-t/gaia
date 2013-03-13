@@ -3,74 +3,66 @@
 
 'use strict';
 
+/* We will get this const definition from shared/js/keyboard_helper.js
+const TYPE_GROUP = {
+  'text': true,
+  'number': true,
+  'option': true
+}
+
+const SETTINGS_KEY = 'keyboard.enabled-layouts';
+*/
+
 var KeyboardLayout = {
   keyboardLayouts: {},
-  textLayoutList: document.getElementById('textLayoutList'),
-  numberLayoutList: document.getElementById('numberLayoutList'),
 
   init: function kl_init() {
-    var self = this;
-    navigator.mozApps.mgmt.getAll().onsuccess = function onsuccess(event) {
-      self.parseKeyboardApp(event.target.result);
-     
-      // make lists
-      var textLayouts = self.keyboardLayouts.text;
-      for (var i=0, len = textLayouts.length; i < len; ++i) {
-        var aItem = self.newLayoutItem(textLayouts[i]);
-        textLayoutList.appendChild(aItem);
-      }
-
-    };
+    this.getAllElements();
+    KeyboardHelper.getAllLayouts(this.makeLayoutList.bind(this));
+    //Settings.mozSettings.addObserver('keyboard.enabled-layouts', this.updateList.bind(this));
   },
 
-  parseKeyboardApp: function kl_parseKeyboardApp(apps) {
-    var self = this;
-    apps.forEach(function eachApp(app) {
-      //XXX should not hard code system app origin here
-      if (app.origin === 'app://system.gaiamobile.org')
-        return;
-      if (!(app.manifest.permissions && 'keyboard' in app.manifest.permissions))
-        return;
-      if (!app.manifest.entry_points)
-        return;
+  getAllElements: function kl_getAllElements() {
+    for (var type in TYPE_GROUP) {
+      var key = type + 'LayoutList';
+      this[key] = document.getElementById(key);
+    }
+  },
 
-      dump("==== " + app.origin);
-      var entryPoints = app.manifest.entry_points;
-      for (var name in entryPoints) {
-        var launchPath = entryPoints[name].launch_path;
-        var supportTypes = entryPoints[name].type_group;
-        for (var i = 0, len = supportTypes.length; i < len; ++i) {
-          var type = supportTypes[i];
-          if (!self.keyboardLayouts[type])
-            self.keyboardLayouts[type] = [];
-
-          self.keyboardLayouts[type].push({
-            "appName": app.manifest.name,
-            "name": name, 
-          });
-        }
+  makeLayoutList: function kl_makeLayoutList(allLayouts) {
+    this.keyboardLayouts = allLayouts;
+    // make lists
+    for (var type in TYPE_GROUP) {
+      var listElement = this[type + 'LayoutList'];
+      if (!listElement)
+        continue;
+      var layouts = this.keyboardLayouts[type];
+      for(var i in layouts) {
+        var aItem = this.newLayoutItem(layouts[i]);
+        listElement.appendChild(aItem);
       }
-    });
+    }
   },
 
   newLayoutItem: function kl_appendLayout(layout) {
-      var layoutName = document.createElement('a');
-      layoutName.textContent = layout.appName + " " + layout.name;
+    var layoutName = document.createElement('a');
+    layoutName.textContent = layout.appName + " " + layout.name;
 
-      var label = document.createElement('label');
-      //<input type="checkbox" name="keyboard.layouts.english" checked />
-      var checkbox = document.createElement('input');
-      checkbox.type = "checkbox";
-      var span = document.createElement('span');
+    var label = document.createElement('label');
+    //<input type="checkbox" name="keyboard.layouts.english" checked />
+    var checkbox = document.createElement('input');
+    checkbox.type = "checkbox";
+    checkbox.checked = layout.enabled;
+    var span = document.createElement('span');
 
-      label.appendChild(checkbox);
-      label.appendChild(span);
+    label.appendChild(checkbox);
+    label.appendChild(span);
 
-      var li = document.createElement('li');
-      li.appendChild(label);
-      li.appendChild(layoutName);
+    var li = document.createElement('li');
+    li.appendChild(label);
+    li.appendChild(layoutName);
 
-      return li;
+    return li;
   }
 };
 
