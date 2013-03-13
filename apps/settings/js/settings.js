@@ -240,6 +240,18 @@ var Settings = {
     }
   },
 
+  getOneSetting: function settings_getOneSetting(key, callback) {
+    if (this.settingsCache && this.settingsCache[key]) {
+      var value = (this.settingsCache[key])? this.settingsCache[key] : null;
+      callback(value);
+    } else {
+      this.getSettings(function(allValues) {
+        var value = (allValues[key])? allValues[key] : null;
+        callback(value);
+      });
+    }
+  },
+
   presetPanel: function settings_presetPanel(panel) {
     this.getSettings(function(result) {
       panel = panel || document;
@@ -561,6 +573,7 @@ window.addEventListener('load', function loadSettings() {
   setTimeout(function() {
     var scripts = [
       'js/utils.js',
+      'shared/js/keyboard_helper.js',
       'shared/js/mouse_event_shim.js',
       'js/airplane_mode.js',
       'js/battery.js',
@@ -573,6 +586,7 @@ window.addEventListener('load', function loadSettings() {
     ];
     scripts.forEach(function attachScripts(src) {
       var script = document.createElement('script');
+      script.type = 'application/javascript';
       script.src = src;
       document.head.appendChild(script);
     });

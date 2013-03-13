@@ -14,8 +14,31 @@ const TYPE_GROUP = {
   'option': true
 };
 
+const SETTINGS_KEY = 'keyboard.enabled-layouts';
+
 var KeyboardHelper = {
-  getAllKeyboards: function kh_getInstalledKeyboards(callback) {
+  getAllLayouts: function kh_getAllLayouts(callback) {
+    var self = this;
+    var settings = window.navigator.mozSettings;
+    var request = settings.createLock().get(SETTINGS_KEY);
+    request.onsuccess = function(e) {
+      var value = request.result[SETTINGS_KEY];
+      if (!value) {
+        self.getInstalledLayouts(function(allLayouts) {
+          //XXX write settings back, this shouldn't happen.
+          var obj = {};
+          obj[SETTINGS_KEY] = JSON.stringify(allLayouts);
+          settings.createLock().set(obj);
+          callback(allLayouts);
+        });
+      } else {
+        var allLayouts = JSON.parse(value);
+        callback(allLayouts);
+      }
+    };
+  },
+
+  getInstalledKeyboards: function kh_getInstalledKeyboards(callback) {
     if (!navigator.mozApps || !navigator.mozApps.mgmt)
       return;
 
@@ -41,8 +64,8 @@ var KeyboardHelper = {
     };
   },
 
-  getAllLayouts: function kh_getAllLayouts(callback) {
-    this.getAllKeyboards(function parseLayouts(apps) {
+  getInstalledLayouts: function kh_getInstalledLayouts(callback) {
+    this.getInstalledKeyboards(function parseLayouts(apps) {
       var keyboardLayouts = {};
       apps.forEach(function(app) {
         var entryPoints = app.manifest.entry_points;
@@ -60,7 +83,9 @@ var KeyboardHelper = {
               "name": name, 
               "appName": app.manifest.name,
               "origin": app.origin, 
-              "path": launchPath 
+              "path": launchPath,
+              "index": keyboardLayouts[type].length,
+              "enabled": true
             });
           });
         }
@@ -70,3 +95,4 @@ var KeyboardHelper = {
     });
   }
 };
+
