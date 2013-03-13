@@ -414,7 +414,6 @@ function initKeyboard() {
     setKeyboardName(inputMethodName);
     resetKeyboard();
     //XXX should read state from API
-    dump("[keyboard app] hashchange: " + window.navigator.mozKeyboard.inputType);
     var state = {
       type: window.navigator.mozKeyboard.inputType,
       choices: null,
@@ -433,7 +432,6 @@ function initKeyboard() {
   // Handle resize events
   window.addEventListener('resize', onResize);
   window.addEventListener('mozvisibilitychange', function() {
-    dump("==== [keyboard app] get mozvisibilitychange: " + !document.mozHidden);
     if (document.mozHidden) {
       hideKeyboard();
       clearTimeout(deleteTimeout);
@@ -840,7 +838,6 @@ function setLayoutPage(newpage) {
 // http://hacks.mozilla.org/2012/05/dom-mutationobserver-reacting-to-dom-changes-without-killing-browser-performance/
 function updateTargetWindowHeight(hide) {
   var url = document.location.href + "#keyboard-test=" + IMERender.ime.scrollHeight;
-  dump("==== [keyboard app] height: " + url);
   window.open(url);
 }
 
@@ -856,7 +853,6 @@ function sendDelete(isRepeat) {
                     undefined, undefined, isRepeat);
   var keyword = (isRepeat) ? 'showlayoutlist' : 'switchlayout';
   var url = document.location.href + "#keyboard-test=" + keyword;
-  dump("==== [keyboard app] switch: " + url);
   clearTimeout(deleteTimeout);
   clearTimeout(deleteInterval);
   window.open(url);
@@ -1437,7 +1433,6 @@ function sendKey(keyCode) {
 // the input field type, its inputmode, its content, and the cursor position.
 function showKeyboard() {
  //XXX should read state from API
- dump("==== [keyboard app] showKeyboard: " + window.navigator.mozKeyboard.inputType);
   var state = {
     type: window.navigator.mozKeyboard.inputType,
     choices: null,

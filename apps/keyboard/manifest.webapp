@@ -14,12 +14,12 @@
     "english": {
       "launch_path": "/index.html#en",
       "description": "English layout",
-      "type_group": ["text", "url"]
+      "type_group": ["text", "number"]
     },
     "spanish": {
       "launch_path": "/index.html#es",
       "description": "Spanish layout",
-      "type_group": ["text", "url"]
+      "type_group": ["text", "number"]
     },
     "number": {
       "launch_path": "/index.html#numberLayout",
