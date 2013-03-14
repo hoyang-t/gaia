@@ -62,6 +62,7 @@ var KeyboardManager = {
     index: 0,
   },
 
+  focusChangeTimeout: 0,
   switchChangeTimeout: 0,
   _debug: function km_debug(msg) {
     console.log("==== [KM] " + msg);
@@ -72,55 +73,67 @@ var KeyboardManager = {
     this.keyboardFrameContainer.classList.add('hide');
 
     // get enabled keyboard from mozSettings, parse their manifest
-    KeyboardHelper.getAllLayouts(function callback(allLayouts) {
-      self.keyboardLayouts = allLayouts;
-      // TODO: launch the first keyboard app(layout) of each type_groups
-      var initType = self.showingLayout.type;
-      var initIndex = self.showingLayout.index;
-      self.launchLayoutFrame(allLayouts[initType][initIndex]);
-    });
+    this.updateLayouts();
+
+    //register settings change
+    var settings = window.navigator.mozSettings;
+    settings.addObserver(SETTINGS_KEY, this.updateLayouts.bind(this)); 
 
     // For Bug 812115: hide the keyboard when the app is closed here,
     // since it would take a longer round-trip to receive focuschange
     // Also in Bug 856692 we realize that we need to close the keyboard
     // when an inline activity goes away.
-    var closeKeyboardEvents = [
-      'appwillclose',
-      'activitywillclose'
-    ];
-    closeKeyboardEvents.forEach(function onEvent(eventType) {
-      window.addEventListener(eventType, function closeKeyboard() {
-        dispatchEvent(new CustomEvent('keyboardhide'));
-        self.keyboardFrameContainer.classList.add('hide');
-      });
-    });
+    window.addEventListener('appwillclose', this); 
+    window.addEventListener('activitywillclose', this); 
 
-    var focusChangeTimeout = 0;
-    window.navigator.mozKeyboard.onfocuschange = function onfocuschange(evt) {
-      // let value selector notice the event
-      dispatchEvent(new CustomEvent('inputfocuschange', evt));
+    navigator.mozKeyboard.onfocuschange = this.inputFocusChange.bind(this); 
+  },
 
-      var state = evt.detail;
-      var type = state.type;
-
-      // Skip the <select> element and inputs with type of date/time,
-      // handled in system app for now
-      if (!type || type in IGNORED_INPUT_TYPES)
-        return;
-
-      // We can get multiple focuschange events in rapid succession
-      // so wait a bit before responding to see if we get another.
-      clearTimeout(focusChangeTimeout);
-      focusChangeTimeout = setTimeout(function keyboardFocusChanged() {
-        if (type === 'blur') {
-          self._debug("get blur event");
-          self.hideKeyboard();
-        } else {
-          self._debug("get focus event");
-          self.showFirstLayout(state);
+  updateLayouts: function km_updateLayouts() {
+    this._debug("update settings");
+    var self = this;
+    KeyboardHelper.getAllLayouts(function callback(allLayouts) {
+      self.keyboardLayouts = {};
+      // filter out disabled layouts
+      for (var type in allLayouts) {
+        self.keyboardLayouts[type] = [];
+        for(var i in allLayouts[type]) {
+          if (allLayouts[type][i].enabled)
+            self.keyboardLayouts[type].push(allLayouts[type][i]);
         }
-      }, FOCUS_CHANGE_DELAY);
-    };
+      }
+
+      var initType = self.showingLayout.type;
+      var initIndex = self.showingLayout.index;
+      self.launchLayoutFrame(self.keyboardLayouts[initType][initIndex]);
+    });
+  },
+
+  inputFocusChange: function km_inputFocusChange(evt) {
+    // let value selector notice the event
+    dispatchEvent(new CustomEvent('inputfocuschange', evt));
+
+    var state = evt.detail;
+    var type = state.type;
+
+    // Skip the <select> element and inputs with type of date/time,
+    // handled in system app for now
+    if (!type || type in IGNORED_INPUT_TYPES)
+      return;
+
+    var self = this;
+    // We can get multiple focuschange events in rapid succession
+    // so wait a bit before responding to see if we get another.
+    clearTimeout(this.focusChangeTimeout);
+    this.focusChangeTimeout = setTimeout(function keyboardFocusChanged() {
+      if (type === 'blur') {
+        self._debug("get blur event");
+        self.hideKeyboard();
+      } else {
+        self._debug("get focus event");
+        self.showFirstLayout(state);
+      }
+    }, FOCUS_CHANGE_DELAY);
   },
 
   launchLayoutFrame: function km_launchLayoutFrame(layout) {
@@ -192,7 +205,7 @@ var KeyboardManager = {
     keyboard.setAttribute('mozpasspointerevents', 'true');
     keyboard.setAttribute('mozapp', manifestURL);
     //keyboard.setAttribute('remote', 'true');
-    //
+    
     this.keyboardFrameContainer.appendChild(keyboard);
     return keyboard;
   },
@@ -279,6 +292,11 @@ var KeyboardManager = {
     switch (evt.type) {
       case 'mozbrowseropenwindow':
         this.updateWhenHashChanged(evt);
+        break;
+      case 'activitywillclose':
+      case 'appwillclose':
+        dispatchEvent(new CustomEvent('keyboardhide'));
+        this.keyboardFrameContainer.classList.add('hide');
         break;
     }
   },
