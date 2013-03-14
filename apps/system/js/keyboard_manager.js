@@ -64,7 +64,7 @@ var KeyboardManager = {
 
   switchChangeTimeout: 0,
   _debug: function km_debug(msg) {
-    dump("==== [KM] " + msg);
+    console.log("==== [KM] " + msg);
   },
 
   init: function km_init() {
@@ -88,7 +88,7 @@ var KeyboardManager = {
     });
 
     var focusChangeTimeout = 0;
-    navigator.mozKeyboard.onfocuschange = function onfocuschange(evt) {
+    window.navigator.mozKeyboard.onfocuschange = function onfocuschange(evt) {
       // let value selector notice the event
       dispatchEvent(new CustomEvent('inputfocuschange', evt));
 
