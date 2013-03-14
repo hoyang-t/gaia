@@ -38,21 +38,23 @@ var KeyboardLayout = {
         continue;
       var layouts = this.keyboardLayouts[type];
       for(var i in layouts) {
-        var aItem = this.newLayoutItem(layouts[i]);
+        var aItem = this.newLayoutItem(type, i, layouts[i]);
         listElement.appendChild(aItem);
       }
     }
   },
 
-  newLayoutItem: function kl_appendLayout(layout) {
+  newLayoutItem: function kl_appendLayout(type, index, layout) {
     var layoutName = document.createElement('a');
     layoutName.textContent = layout.appName + " " + layout.name;
 
     var label = document.createElement('label');
-    //<input type="checkbox" name="keyboard.layouts.english" checked />
     var checkbox = document.createElement('input');
-    checkbox.type = "checkbox";
+    checkbox.type = 'checkbox';
+    checkbox.dataset.type = type;
+    checkbox.dataset.index = index;
     checkbox.checked = layout.enabled;
+    checkbox.addEventListener('change', this);
     var span = document.createElement('span');
 
     label.appendChild(checkbox);
@@ -61,10 +63,23 @@ var KeyboardLayout = {
     var li = document.createElement('li');
     li.appendChild(label);
     li.appendChild(layoutName);
-
     return li;
+  },
+
+  handleEvent: function kl_handleEvent(evt) {
+    if (evt.target.type !== 'checkbox')
+      return;
+    // TODO should check if this is the last one
+    // if yes, prevent it to be disabled.
+    var checkbox = evt.target;
+    var layoutType = checkbox.dataset.type;
+    var layoutIndex = checkbox.dataset.index;
+    this.keyboardLayouts[layoutType][layoutIndex].enabled = checkbox.checked;
+
+    var obj = {};
+    obj[SETTINGS_KEY] = JSON.stringify(this.keyboardLayouts);
+    Settings.mozSettings.createLock().set(obj);
   }
 };
 
-// startup
 navigator.mozL10n.ready(KeyboardLayout.init.bind(KeyboardLayout));
