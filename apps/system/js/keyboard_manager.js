@@ -55,6 +55,9 @@ var KeyboardManager = {
 
   // The set of running keyboards.
   // This is a map from keyboard origin to an object like this:
+  // 'keyboard.gaiamobile.org' : {
+  //   'English': aIframe
+  // }
   runningLayouts: {},
   showingLayout: {
     frame: null,
@@ -86,10 +89,9 @@ var KeyboardManager = {
     window.navigator.mozKeyboard.onfocuschange = this.inputFocusChange.bind(this); 
   },
 
-  updateLayouts: function km_updateLayouts() {
-    this._debug("update settings");
+  updateLayouts: function km_updateLayouts(evt) {
     var self = this;
-    KeyboardHelper.getAllLayouts(function callback(allLayouts) {
+    function resetLayoutList(allLayouts) {
       self.keyboardLayouts = {};
       // filter out disabled layouts
       for (var type in allLayouts) {
@@ -99,11 +101,19 @@ var KeyboardManager = {
             self.keyboardLayouts[type].push(allLayouts[type][i]);
         }
       }
-
       var initType = self.showingLayout.type;
       var initIndex = self.showingLayout.index;
       self.launchLayoutFrame(self.keyboardLayouts[initType][initIndex]);
-    });
+    }
+    if (evt) {
+      // update because of observing settings change
+      this._debug("settings updated " + evt.settingValue);
+      var allLayouts = JSON.parse(evt.settingValue);
+      resetLayoutList(allLayouts);
+    } else {
+      // update because of initializing
+      KeyboardHelper.getAllLayouts(resetLayoutList);
+    }
   },
 
   inputFocusChange: function km_inputFocusChange(evt) {
@@ -294,7 +304,41 @@ var KeyboardManager = {
         dispatchEvent(new CustomEvent('keyboardhide'));
         this.keyboardFrameContainer.classList.add('hide');
         break;
+      //XXX the following three cases haven't tested.
+      case 'mozbrowsererror': // OOM
+        var origing = evt.target.dataset.frameOrigin;
+        this.removeKeyboard(origin);
+        break;
+      case 'applicationinstall': //app installed
+        this.updateLayoutSettings();
+        break;
+      case 'applicationuninstall': //app uninstalled
+        var origin = evt.detail.application.origin;
+        this.removeKeyboard(origin);
+        this.updateLayoutSettings();
+        break;
     }
+  },
+
+  removeKeyboard: function km_removeKeyboard(origin) {
+    for (var name in this.runningLayouts[origin]) {
+      var frame = this.runningLayouts[origin][name];
+      windows.removeChild(frame);
+      delete this.runningLayouts[origin][name];
+    }
+
+    if (this.runningLayouts.hasOwnProperty(origin)) {
+      delete this.runningLayouts[origin];
+    }
+  },
+
+  updateLayoutSettings: function km_updateLayoutSettings() {
+    KeyboardHelper.getInstalledLayouts(function(allLayouts) {
+      var obj = {};
+      obj[SETTINGS_KEY] = JSON.stringify(allLayouts);
+      var settings = window.navigator.mozSettings;
+      settings.createLock().set(obj);
+    });
   },
 
   showKeyboard: function km_showKeyboard(group, index) {
