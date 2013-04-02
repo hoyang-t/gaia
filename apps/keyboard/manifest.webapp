@@ -11,14 +11,79 @@
     "keyboard": {}
   },
   "entry_points": {
-    "english": {
+    "English": {
       "launch_path": "/index.html#en",
       "description": "English layout",
       "type_group": ["text", "number"]
     },
-    "spanish": {
+    "English (Dvorak)": {
+      "launch_path": "/index.html#en-Dvorak",
+      "description": "Dvorak layout",
+      "type_group": ["text", "number"]
+    },
+    "Spanish": {
       "launch_path": "/index.html#es",
       "description": "Spanish layout",
+      "type_group": ["text", "number"]
+    },
+    "Portuguese Brazilian": {
+      "launch_path": "/index.html#pt_BR",
+      "description": "Portuguese Brazilian layout",
+      "type_group": ["text", "number"]
+    },
+    "Czech": {
+      "launch_path": "/index.html#cz",
+      "description": "Czech layout",
+      "type_group": ["text", "number"]
+    },
+    "French": {
+      "launch_path": "/index.html#fr",
+      "description": "French layout",
+      "type_group": ["text", "number"]
+    },
+    "German": {
+      "launch_path": "/index.html#de",
+      "description": "German layout",
+      "type_group": ["text", "number"]
+    },
+    "Norwegian Bokmal": {
+      "launch_path": "/index.html#nb",
+      "description": "Norwegian Bokmal layout",
+      "type_group": ["text", "number"]
+    },
+    "Slovak": {
+      "launch_path": "/index.html#sk",
+      "description": "Slovak layout",
+      "type_group": ["text", "number"]
+    },
+    "Turkish": {
+      "launch_path": "/index.html#tr",
+      "description": "Turkish layout",
+      "type_group": ["text", "number"]
+    },
+    "Russian": {
+      "launch_path": "/index.html#ru",
+      "description": "Russian layout",
+      "type_group": ["text", "number"]
+    },
+    "Serbian (Cyrillic)": {
+      "launch_path": "/index.html#sr-Cyrl",
+      "description": "Serbian (Cyrillic) layout",
+      "type_group": ["text", "number"]
+    },
+    "Arabic": {
+      "launch_path": "/index.html#ar",
+      "description": "Arabic layout",
+      "type_group": ["text", "number"]
+    },
+    "Hebrew": {
+      "launch_path": "/index.html#he",
+      "description": "Hebrew layout",
+      "type_group": ["text", "number"]
+    },
+    "Greek": {
+      "launch_path": "/index.html#el",
+      "description": "Greek layout",
       "type_group": ["text", "number"]
     },
     "number": {
