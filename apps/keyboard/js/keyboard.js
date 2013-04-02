@@ -321,7 +321,6 @@ function getKeyboardSettings() {
 
     // set default input method with hash value
     if (window.location.hash !== '') {
-      console.log(enabledKeyboardGroups.toString());
       var keyboardName = window.location.hash.substring(1);
       for(var group in keyboardGroups) {
         if(keyboardGroups[group].indexOf(keyboardName) !== -1) {
@@ -409,13 +408,11 @@ function initKeyboard() {
     attributes: true, attributeFilter: ['class', 'style', 'data-hidden']
   });
 
-  window.addEventListener('hashchange', function() {
-    var inputMethodName = window.location.hash.substring(1);
-    setKeyboardName(inputMethodName);
-    resetKeyboard();
-    //XXX should read state from API
+  window.addEventListener('mozvisibilitychange', function renderKeyboard() {
+    var inputType = window.navigator.mozKeyboard.inputType;
+
     var state = {
-      type: window.navigator.mozKeyboard.inputType,
+      type: inputType,
       choices: null,
       value: '',
       inputmode: '',
@@ -423,23 +420,20 @@ function initKeyboard() {
       selectionEnd: 0
     };
 
-    //XXX is it correct here?
-    if (inputMethod.activate) {
-      inputMethod.activate(userLanguage, suggestionsEnabled, state);
-    }
-  }, false);
-
-  // Handle resize events
-  window.addEventListener('resize', onResize);
-  window.addEventListener('mozvisibilitychange', function() {
-    if (document.mozHidden) {
-      hideKeyboard();
-      clearTimeout(deleteTimeout);
-      clearTimeout(deleteInterval);
+    if (!document.mozHidden) {
+      showKeyboard(state);
     } else {
-      showKeyboard();
+      hideKeyboard();
     }
   });
+
+  window.addEventListener('hashchange', function switchKeyboard() {
+    var inputMethodName = window.location.hash.substring(1);
+    setKeyboardName(inputMethodName);
+    resetKeyboard();
+  }, false);
+
+  window.addEventListener('resize', onResize);
 }
 
 function handleKeyboardSound() {
@@ -589,6 +583,19 @@ function modifyLayout(keyboardName) {
     space = copy(space);   // and the original space key
     row[c] = space;
 
+<<<<<<< HEAD
+=======
+    // switch languages button
+    if (!layout['hidesSwitchKey']) {
+      space.ratio -= 1;
+      row.splice(c, 0, {
+        value: '&#x1f310;',
+        ratio: 1,
+        keyCode: SWITCH_KEYBOARD
+      });
+      c += 1;
+    }
+>>>>>>> 218b928... Integrate the keyboard manager with switch and show layout list functions in Keyboard app.
 
     // Alternate layout key
     // This gives the author the ability to change the alternate layout
@@ -851,11 +858,6 @@ function sendDelete(isRepeat) {
   // of repeating events.
   inputMethod.click(KeyboardEvent.DOM_VK_BACK_SPACE,
                     undefined, undefined, isRepeat);
-  var keyword = (isRepeat) ? 'showlayoutlist' : 'switchlayout';
-  var url = document.location.href + "#keyboard-test=" + keyword;
-  clearTimeout(deleteTimeout);
-  clearTimeout(deleteInterval);
-  window.open(url);
 }
 
 // Return the upper value for a key object
@@ -921,18 +923,6 @@ function showAlternatives(key) {
   if (r < 0 || c < 0 || r === undefined || c === undefined)
     return;
   keyObj = currentLayout.keys[r][c];
-
-  // Handle languages alternatives
-  if (keyObj.keyCode === SWITCH_KEYBOARD) {
-    IMERender.showKeyboardAlternatives(
-      key,
-      enabledKeyboardNames,
-      keyboardName,
-      SWITCH_KEYBOARD
-    );
-    isShowingAlternativesMenu = true;
-    return;
-  }
 
   // Handle key alternatives
   altMap = currentLayout.alt || {};
@@ -1129,18 +1119,24 @@ function startPress(target, coords, touchId) {
     sendDelete(false);
 
     // Second, after a delay (with feedback)
-    //deleteTimeout = window.setTimeout(function() {
-    //  sendDelete(true);
+    deleteTimeout = window.setTimeout(function() {
+      sendDelete(true);
 
       // Third, after shorter delay (with feedback too)
       deleteInterval = setInterval(function() {
         sendDelete(true);
       }, REPEAT_RATE);
 
-    //}, REPEAT_TIMEOUT);
+    }, REPEAT_TIMEOUT);
+  }
+
+  if (keyCode === SWITCH_KEYBOARD) {
+    deleteTimeout = setTimeout(function() {
+      var url = document.location.href + "#keyboard-test=showlayoutlist";
+      window.open(url);
+    }, REPEAT_TIMEOUT);
   }
 }
-
 
 function inMenuLockedArea(coords) {
   return (menuLockedArea &&
@@ -1307,26 +1303,8 @@ function endPress(target, coords, touchId) {
 
     // Switch language (keyboard)
   case SWITCH_KEYBOARD:
-
-    // If the user has specify a keyboard in the menu,
-    // switch to that keyboard.
-    if (target.dataset.keyboard) {
-      setKeyboardName(target.dataset.keyboard);
-
-      // If the user is releasing the switch keyboard key while
-      // showing the alternatives, do nothing.
-    } else if (isShowingAlternativesMenu) {
-      break;
-
-      // Cycle between languages (keyboard)
-    } else {
-      var keyboards = enabledKeyboardNames;
-      var index = keyboards.indexOf(keyboardName);
-      index = (index + 1) % keyboards.length;
-      setKeyboardName(enabledKeyboardNames[index]);
-    }
-
-    resetKeyboard();
+    var url = document.location.href + "#keyboard-test=switchlayout";
+    window.open(url);
 
     /*
      * XXX
@@ -1431,16 +1409,7 @@ function sendKey(keyCode) {
 // This is called when we get an event from mozKeyboard.
 // The state argument is the data passed with that event, and includes
 // the input field type, its inputmode, its content, and the cursor position.
-function showKeyboard() {
- //XXX should read state from API
-  var state = {
-    type: window.navigator.mozKeyboard.inputType,
-    choices: null,
-    value: '',
-    inputmode: '',
-    selectionStart: 0,
-    selectionEnd: 0
-  };
+function showKeyboard(state) {
   // If no keyboard has been selected yet, choose the first enabled one.
   // This will also set the inputMethod
   if (!keyboardName)
