@@ -39,6 +39,9 @@ const TYPE_GROUP_MAPPING = {
 // How long to wait for more focuschange events before processing
 const FOCUS_CHANGE_DELAY = 20;
 
+// How long to wait for the keyboard iframe becomes not hidden
+const SHOW_KEYBOARD_TIMEOUT = 20;
+
 var KeyboardManager = {
   keyboardFrameContainer: document.getElementById('keyboard-frame'),
 
@@ -183,7 +186,7 @@ var KeyboardManager = {
 
     this.runningLayouts[layout.origin][layout.name] = layoutFrame;
     //XXX
-    this._showAllLayouts();
+    //this._showAllLayouts();
 
     return layoutFrame;
   },
@@ -291,7 +294,9 @@ var KeyboardManager = {
         };
 
         if (this.keyboardFrameContainer.classList.contains('hide')) {
-          this.showKeyboard();
+          window.setTimeout(function showKeyboard() {
+            self.showKeyboard();
+          }, SHOW_KEYBOARD_TIMEOUT);
           this.keyboardFrameContainer.addEventListener('transitionend', updateHeight);
         } else {
           updateHeight();
@@ -369,8 +374,9 @@ var KeyboardManager = {
     this._debug("hide keyboard!");
     dispatchEvent(new CustomEvent('keyboardhide'));
     this.keyboardFrameContainer.classList.add('hide');
-    if (!this.showingLayout.frame)
+    if (!this.showingLayout.frame) {
       return;
+    }
     this._debug("(hide) showingLayout.frame path " + this.showingLayout.frame.dataset.framePath);
     this.showingLayout.frame.hidden = true;
     this.showingLayout.frame.setVisible(false);
