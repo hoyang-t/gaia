@@ -136,12 +136,15 @@ var KeyboardManager = {
     // so wait a bit before responding to see if we get another.
     clearTimeout(this.focusChangeTimeout);
     this.focusChangeTimeout = setTimeout(function keyboardFocusChanged() {
+      var mappingType = TYPE_GROUP_MAPPING[type];
+      var index = self.showingLayout.index;
+
       if (type === 'blur') {
         self._debug("get blur event");
         self.hideKeyboard();
       } else {
         self._debug("get focus event");
-        self.showFirstLayout(state);
+        self.setKeyboard(mappingType, index);
       }
     }, FOCUS_CHANGE_DELAY);
   },
@@ -243,10 +246,13 @@ var KeyboardManager = {
         clearTimeout(this.switchChangeTimeout);
         this.switchChangeTimeout = setTimeout(function keyboardSwitchChange() {
           if (keyword === 'switchlayout') {
-            var index = (showed.index + 1) % self.keyboardLayouts[showed.type].length; 
+            var length = self.keyboardLayouts[showed.type].length;
+            var index = (showed.index + 1) % length;
+
             self.hideKeyboard();
-            self.showKeyboard(showed.type, index);
-          } else {
+            self.setKeyboard(showed.type, index);
+            self.showKeyboard();
+          } else { // showlayoutlist
             var items = [];
             self.keyboardLayouts[showed.type].forEach(function(layout, index) {
               var label = layout.appName + " " + layout.name;
@@ -256,9 +262,12 @@ var KeyboardManager = {
               });
             });
             self.hideKeyboard();
-            ListMenu.request(items, "keyboard layout selection", function(choice) {
-                  self.showKeyboard(showed.type, choice);
-                }, null);
+            ListMenu.request(items, "keyboard layout selection", function(selectedIndex) {
+              //XXX the type of selectedIndex is string
+              var index = parseInt(selectedIndex);
+              self.setKeyboard(showed.type, index);
+              self.showKeyboard();
+            }, null);
           }
         }, FOCUS_CHANGE_DELAY);
         break;
@@ -282,20 +291,13 @@ var KeyboardManager = {
         };
 
         if (this.keyboardFrameContainer.classList.contains('hide')) {
-          this.keyboardFrameContainer.classList.remove('hide');
+          this.showKeyboard();
           this.keyboardFrameContainer.addEventListener('transitionend', updateHeight);
         } else {
           updateHeight();
         }
         break;
     }
-  },
-
-  showFirstLayout: function km_showFirstLayout(state) {
-    if (!state.type || !(state.type in TYPE_GROUP_MAPPING))
-      return;
-    var group = TYPE_GROUP_MAPPING[state.type];
-    this.showKeyboard(group, 0);
   },
 
   handleEvent: function km_handleEvent(evt) {
@@ -345,10 +347,9 @@ var KeyboardManager = {
     });
   },
 
-  showKeyboard: function km_showKeyboard(group, index) {
+  setKeyboard: function km_setKeyboard(group, index) {
     //XXX hide current keyboard first because option menu won't set focus back to input field
     //this makesa keyboard showed, but input field is not focused.
-    this.hideKeyboard();
     this._debug("show keyboard: type=" + group + " index=" + index);
     this.showingLayout.type = group;
     this.showingLayout.index = index;
@@ -358,7 +359,9 @@ var KeyboardManager = {
     this.showingLayout.frame.setVisible(true);
     this.showingLayout.frame.addEventListener('mozbrowseropenwindow', this, true);
     this._debug("showingLayout.frame path " + this.showingLayout.frame.dataset.framePath);
+  },
 
+  showKeyboard: function km_showKeyboard() {
     this.keyboardFrameContainer.classList.remove('hide');
   },
 
