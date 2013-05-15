@@ -171,9 +171,6 @@ const ACCENT_CHAR_MENU_TIMEOUT = 700;
 const REPEAT_RATE = 100;
 const REPEAT_TIMEOUT = 700;
 
-// How long to wait for more focuschange events before processing
-const FOCUS_CHANGE_DELAY = 100;
-
 // Taps the shift key twice within CAPS_LOCK_TIMEOUT
 // to lock the keyboard at upper case state.
 const CAPS_LOCK_TIMEOUT = 450;
@@ -583,8 +580,6 @@ function modifyLayout(keyboardName) {
     space = copy(space);   // and the original space key
     row[c] = space;
 
-<<<<<<< HEAD
-=======
     // switch languages button
     if (!layout['hidesSwitchKey']) {
       space.ratio -= 1;
@@ -595,7 +590,6 @@ function modifyLayout(keyboardName) {
       });
       c += 1;
     }
->>>>>>> 218b928... Integrate the keyboard manager with switch and show layout list functions in Keyboard app.
 
     // Alternate layout key
     // This gives the author the ability to change the alternate layout

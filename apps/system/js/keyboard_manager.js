@@ -72,6 +72,7 @@ var KeyboardManager = {
     if (this._onDebug)
       console.log('[Keyboard Manager] ' + msg);
   },
+  keyboardHeight: 0,
 
   init: function km_init() {
     var self = this;
@@ -92,6 +93,10 @@ var KeyboardManager = {
     window.addEventListener('activitywillclose', this); 
     window.navigator.mozKeyboard.onfocuschange =
       this.inputFocusChange.bind(this);
+  },
+
+  getHeight: function kn_getHeight() {
+    return this.keyboardHeight;
   },
 
   updateLayouts: function km_updateLayouts(evt) {
@@ -273,11 +278,13 @@ var KeyboardManager = {
             return;
           }
 
+          var height = parseInt(keyword);
           var detail = {
             'detail': {
-              'height': parseInt(keyword)
+              'height': height
             }
           };
+          self.keyboardHeight = height;
           dispatchEvent(new CustomEvent('keyboardchange', detail));
         };
 
@@ -299,6 +306,7 @@ var KeyboardManager = {
         break;
       case 'activitywillclose':
       case 'appwillclose':
+        this.keyboardHeight = 0;
         dispatchEvent(new CustomEvent('keyboardhide'));
         this.keyboardFrameContainer.classList.add('hide');
         break;
